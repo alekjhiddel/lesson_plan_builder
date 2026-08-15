@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Process Response - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📋 Process ChatGPT's Response</h1>
+    <p class="subtitle">Paste the response here — we'll add your students' real names back in</p>
+</div>
+
+<form method="POST" class="process-form">
+    <input type="hidden" name="plan_type" value="{{ request.args.get('plan_type', 'weekly') }}">
+    
+    <div class="form-section">
+        <div class="form-group">
+            <label for="response_text">Paste ChatGPT's response below:</label>
+            <textarea id="response_text" name="response_text" rows="20" 
+                      placeholder="Paste the entire response from ChatGPT here...&#10;&#10;The tool will automatically replace 'Child 1', 'Child 2', etc. with your students' real names."></textarea>
+        </div>
+    </div>
+    
+    <div class="privacy-reminder">
+        <p>🔒 <strong>Privacy check:</strong> The response should only contain "Child 1", "Child 2", etc. — not real names. If you see real names in ChatGPT's response, something went wrong with the prompt.</p>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">Process & Save Plan 📋</button>
+    </div>
+</form>
+
+{% if students %}
+<div class="card mapping-reference">
+    <h3>📝 Name Mapping Reference</h3>
+    <p class="help-text">These are the anonymized names ChatGPT used:</p>
+    <div class="mapping-list">
+        {% for student in students %}
+            <div class="mapping-item">
+                <span class="anon-name">Child {{ loop.index }}</span>
+                <span class="arrow">→</span>
+                <span class="real-name">{{ student.name }}</span>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

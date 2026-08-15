@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Your Prompt - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📋 Your Prompt is Ready!</h1>
+    <p class="subtitle">Copy this and paste it into ChatGPT</p>
+</div>
+
+<div class="prompt-instructions">
+    <div class="step-list">
+        <div class="step">
+            <span class="step-number">1</span>
+            <p>Click the <strong>Copy</strong> button below</p>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <p>Open <a href="https://chat.openai.com" target="_blank">ChatGPT</a> and paste it in</p>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            <p>When ChatGPT responds, come back here and click <strong>Process Response</strong></p>
+        </div>
+    </div>
+</div>
+
+<div class="prompt-container">
+    <div class="prompt-actions">
+        <button onclick="copyPrompt()" class="btn btn-primary" id="copy-btn">
+            📋 Copy to Clipboard
+        </button>
+        <span class="copy-feedback" id="copy-feedback"></span>
+    </div>
+    <pre class="prompt-text" id="prompt-text">{{ prompt }}</pre>
+</div>
+
+<div class="next-step">
+    <p>After ChatGPT gives you a response:</p>
+    <a href="{{ url_for('process_response') }}?plan_type={{ plan_type }}" class="btn btn-secondary btn-large">
+        📋 Process ChatGPT's Response →
+    </a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyPrompt() {
+    const text = document.getElementById('prompt-text').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        const feedback = document.getElementById('copy-feedback');
+        btn.innerHTML = '✅ Copied!';
+        btn.classList.add('btn-success');
+        feedback.textContent = 'Now paste this into ChatGPT!';
+        setTimeout(() => {
+            btn.innerHTML = '📋 Copy to Clipboard';
+            btn.classList.remove('btn-success');
+        }, 3000);
+    });
+}
+</script>
+{% endblock %}

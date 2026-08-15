@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Plan History - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📁 Plan History</h1>
+    <p class="subtitle">All your previously generated lesson plans</p>
+</div>
+
+{% if plans %}
+<div class="history-list">
+    {% for plan in plans %}
+    <div class="card history-card">
+        <div class="history-header">
+            <h3>{{ plan.type | capitalize }} Plan</h3>
+            <span class="history-date">{{ plan.generated_at[:10] if plan.generated_at else plan.filename[:8] }}</span>
+        </div>
+        <a href="{{ url_for('view_plan', filename=plan.filename) }}" class="btn btn-small">View Plan</a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">📁</div>
+    <h2>No plans generated yet</h2>
+    <p>Your lesson plans will appear here after you generate and process them.</p>
+    <a href="{{ url_for('generate') }}" class="btn btn-primary">Generate Your First Plan</a>
+</div>
+{% endif %}
+{% endblock %}

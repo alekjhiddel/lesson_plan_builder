@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Student - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ action }} Student</h1>
+</div>
+
+<form method="POST" class="student-form">
+    <div class="form-section">
+        <h2>Basic Info</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="name">Student's Name *</label>
+                <input type="text" id="name" name="name" value="{{ student.name if student else '' }}" required>
+                <span class="help-text">🔒 This name stays on your computer only — never sent to AI</span>
+            </div>
+            <div class="form-group">
+                <label for="age">Age</label>
+                <input type="text" id="age" name="age" value="{{ student.age if student else '' }}" placeholder="e.g., 8">
+            </div>
+            <div class="form-group">
+                <label for="grade">Grade</label>
+                <input type="text" id="grade" name="grade" value="{{ student.grade if student else '' }}" placeholder="e.g., 2nd">
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Communication</h2>
+        <div class="form-group">
+            <label for="communication_mode">How does this student communicate?</label>
+            <select id="communication_mode" name="communication_mode">
+                <option value="">-- Select --</option>
+                <option value="Verbal" {{ 'selected' if student and student.communication_mode == 'Verbal' }}>Verbal (speaks in sentences)</option>
+                <option value="Limited verbal" {{ 'selected' if student and student.communication_mode == 'Limited verbal' }}>Limited verbal (some words/phrases)</option>
+                <option value="AAC device" {{ 'selected' if student and student.communication_mode == 'AAC device' }}>AAC device (speech-generating device)</option>
+                <option value="PECS" {{ 'selected' if student and student.communication_mode == 'PECS' }}>PECS (Picture Exchange)</option>
+                <option value="Sign language" {{ 'selected' if student and student.communication_mode == 'Sign language' }}>Sign language</option>
+                <option value="Gestures/pointing" {{ 'selected' if student and student.communication_mode == 'Gestures/pointing' }}>Gestures/pointing only</option>
+                <option value="Non-verbal" {{ 'selected' if student and student.communication_mode == 'Non-verbal' }}>Non-verbal (no reliable communication yet)</option>
+                <option value="Mixed" {{ 'selected' if student and student.communication_mode == 'Mixed' }}>Mixed (multiple modes)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="communication_details">Communication details</label>
+            <textarea id="communication_details" name="communication_details" rows="2" 
+                      placeholder="e.g., Uses 2-word phrases, knows about 30 signs, uses TouchChat app with 32-location page set, can request 'more' and 'help'">{{ student.communication_details if student else '' }}</textarea>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Needs & Profile</h2>
+        <div class="form-group">
+            <label for="cognitive_needs">Cognitive profile</label>
+            <textarea id="cognitive_needs" name="cognitive_needs" rows="2"
+                      placeholder="e.g., Functions at 2-3 year old level, strong visual learner, needs hand-over-hand for new tasks, can match/sort but not count with meaning">{{ student.cognitive_needs if student else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="physical_needs">Physical needs <span class="help-text">(one per line)</span></label>
+            <textarea id="physical_needs" name="physical_needs" rows="3"
+                      placeholder="e.g.,&#10;Wheelchair user — transfers with 2-person assist&#10;Legally blind — needs high contrast, large print&#10;G-tube fed — no oral feeding&#10;Seizure disorder — see health plan">{{ student.physical_needs | join('\n') if student and student.physical_needs else '' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="behavioral_needs">Behavioral needs</label>
+            <textarea id="behavioral_needs" name="behavioral_needs" rows="3"
+                      placeholder="e.g., Elopes when overstimulated, hits when told 'no', needs 5-min warning before transitions, has a BIP — use token board with 5 tokens for iPad time">{{ student.behavioral_needs if student else '' }}</textarea>
+            <span class="help-text">Include info from their BIP (Behavior Intervention Plan) if they have one</span>
+        </div>
+        <div class="form-group">
+            <label for="sensory_needs">Sensory needs</label>
+            <textarea id="sensory_needs" name="sensory_needs" rows="2"
+                      placeholder="e.g., Seeks deep pressure, avoids loud sounds (wear headphones for fire drills), mouths everything, needs weighted lap pad for seated work">{{ student.sensory_needs if student else '' }}</textarea>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>What Motivates Them</h2>
+        <div class="form-group">
+            <label for="reinforcers">Reinforcers / Motivators</label>
+            <textarea id="reinforcers" name="reinforcers" rows="2"
+                      placeholder="e.g., iPad (YouTube videos), spinning objects, bubbles, tickles, goldfish crackers, music, swinging. Token board: 5 tokens = 3 min iPad">{{ student.reinforcers if student else '' }}</textarea>
+            <span class="help-text">💡 What makes this kid light up? What will they work for?</span>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>IEP Goals <span class="help-text">(one per line)</span></h2>
+        <div class="form-group">
+            <label for="iep_goals">Current IEP goals</label>
+            <textarea id="iep_goals" name="iep_goals" rows="8"
+                      placeholder="e.g.,&#10;Given a visual schedule, will independently transition between 3 activities with no more than 1 verbal prompt in 4/5 opportunities&#10;Will request preferred items/activities using AAC device in 8/10 trials across 3 consecutive sessions&#10;Will complete 3-step handwashing routine independently using visual task analysis in 4/5 trials&#10;Will identify 5 functional sight words (EXIT, STOP, his name, BOYS, PUSH) with 80% accuracy">{{ student.iep_goals | join('\n') if student and student.iep_goals else '' }}</textarea>
+            <span class="help-text">Tip: Copy these directly from the IEP! Include the full measurable goal with criteria.</span>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="iep_annual_review_date">ARC/Annual review date</label>
+                <input type="text" id="iep_annual_review_date" name="iep_annual_review_date"
+                       value="{{ student.iep_annual_review_date if student else '' }}"
+                       placeholder="e.g., March 2027">
+            </div>
+            <div class="form-group">
+                <label for="related_services">Related services</label>
+                <input type="text" id="related_services" name="related_services"
+                       value="{{ student.related_services if student else '' }}"
+                       placeholder="e.g., Speech 3x/wk, OT 2x/wk, PT 1x/wk">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="sdi_notes">Specially Designed Instruction (SDI) notes</label>
+            <textarea id="sdi_notes" name="sdi_notes" rows="2"
+                      placeholder="e.g., Errorless teaching for new skills, time delay for known skills, visual supports for all transitions, hand-over-hand fading to independence">{{ student.sdi_notes if student else '' }}</textarea>
+            <span class="help-text">How does this student learn best? What methods are in their IEP?</span>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Homeroom / Inclusion</h2>
+        <div class="form-group">
+            <label>Does this student go to a general education homeroom?</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="homeroom_attends" value="yes" 
+                           {{ 'checked' if student and student.homeroom_attends }}
+                           onchange="document.getElementById('homeroom-details').style.display='block'"> Yes
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="homeroom_attends" value="no" 
+                           {{ 'checked' if not student or not student.homeroom_attends }}
+                           onchange="document.getElementById('homeroom-details').style.display='none'"> No
+                </label>
+            </div>
+        </div>
+        <div id="homeroom-details" style="display: {{ 'block' if student and student.homeroom_attends else 'none' }}">
+            <div class="form-group">
+                <label for="homeroom_duration">How long?</label>
+                <input type="text" id="homeroom_duration" name="homeroom_duration" 
+                       value="{{ student.homeroom_duration if student else '' }}" 
+                       placeholder="e.g., 30 minutes, 1 hour, just for specials">
+            </div>
+            <div class="form-group">
+                <label>Does an aide need to go with them?</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="homeroom_aide_accompanies" value="yes"
+                               {{ 'checked' if student and student.homeroom_aide_accompanies }}> Yes, an aide goes
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="homeroom_aide_accompanies" value="no"
+                               {{ 'checked' if not student or not student.homeroom_aide_accompanies }}> No, they go independently
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="homeroom_schedule">When do they go?</label>
+                <input type="text" id="homeroom_schedule" name="homeroom_schedule"
+                       value="{{ student.homeroom_schedule if student else '' }}"
+                       placeholder="e.g., 9:00-9:30 AM daily, or just Tuesday/Thursday mornings">
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Life Skills Priorities <span class="help-text">(one per line)</span></h2>
+        <div class="form-group">
+            <label for="life_skills_priorities">What life skills are you working toward?</label>
+            <textarea id="life_skills_priorities" name="life_skills_priorities" rows="4"
+                      placeholder="e.g.,&#10;Toilet training (on a schedule, not yet self-initiating)&#10;Putting on/taking off coat independently&#10;Using a spoon without spilling&#10;Waiting without screaming (currently ~30 seconds max)&#10;Washing hands (can do with visual prompt)">{{ student.life_skills_priorities | join('\n') if student and student.life_skills_priorities else '' }}</textarea>
+            <span class="help-text">💡 These are the BIG goals — the skills that lead to independence</span>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Current Focus Areas <span class="help-text">(one per line)</span></h2>
+        <div class="form-group">
+            <label for="focus_areas">What are you actively working on right now?</label>
+            <textarea id="focus_areas" name="focus_areas" rows="4"
+                      placeholder="e.g.,&#10;Requesting 'more' and 'help' with AAC&#10;Staying seated for 5 minutes&#10;Following 1-step directions with a visual&#10;Matching colors">{{ student.focus_areas | join('\n') if student and student.focus_areas else '' }}</textarea>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Notes & Observations</h2>
+        <div class="form-group">
+            <label for="notes">Anything else that helps with planning</label>
+            <textarea id="notes" name="notes" rows="4"
+                      placeholder="e.g., Loves dinosaurs (great motivator), melts down with loud noises, needs heavy work before seated activities, mom wants more focus on self-help skills, had a regression after winter break — go slower the first week back">{{ student.notes if student else '' }}</textarea>
+            <span class="help-text">💡 This grows over time — add what works, what doesn't, parent requests, therapist recommendations, breakthroughs!</span>
+        </div>
+        
+        {% if student and student.progress_notes %}
+        <div class="progress-history">
+            <h3>Progress Notes History</h3>
+            {% for note in student.progress_notes | reverse %}
+            <div class="progress-note">
+                <span class="note-date">{{ note.date[:10] }}</span>
+                <p>{{ note.note }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">Save Student</button>
+        <a href="{{ url_for('students_list') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

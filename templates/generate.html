@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Generate Plans - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>✨ Generate Lesson Plans</h1>
+    <p class="subtitle">Choose what you'd like to create</p>
+</div>
+
+{% if not students %}
+<div class="alert alert-info">
+    <strong>Heads up!</strong> You haven't added any students yet. 
+    <a href="{{ url_for('student_add') }}">Add students first</a> for personalized plans.
+</div>
+{% endif %}
+
+<form method="POST" class="generate-form">
+    <div class="form-section">
+        <h2>What would you like to generate?</h2>
+        <div class="plan-type-grid">
+            <label class="plan-type-card">
+                <input type="radio" name="plan_type" value="weekly" checked>
+                <div class="plan-type-content">
+                    <span class="plan-type-icon">📅</span>
+                    <h3>Full Weekly Plan</h3>
+                    <p>Complete week: classroom schedule + individual daily plans for each child's aide time</p>
+                </div>
+            </label>
+            <label class="plan-type-card">
+                <input type="radio" name="plan_type" value="daily_individual">
+                <div class="plan-type-content">
+                    <span class="plan-type-icon">👤</span>
+                    <h3>Daily Individual Plans Only</h3>
+                    <p>Just the 1:1 aide plans for each student (detailed, printable)</p>
+                </div>
+            </label>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Theme & Timing</h2>
+        <div class="current-theme">
+            <p>📅 Current suggestion: <strong>{{ themes.themes[0] }}</strong> ({{ themes.month }})</p>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="month">Plan for which month?</label>
+                <select id="month" name="month">
+                    <option value="0">This month (auto-detect)</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="custom_theme">Custom theme (optional)</label>
+                <input type="text" id="custom_theme" name="custom_theme" 
+                       placeholder="e.g., Dinosaurs, Community Helpers, Five Senses">
+                <span class="help-text">Leave blank to use the seasonal suggestion</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Additional Notes <span class="optional">(optional)</span></h2>
+        <div class="form-group">
+            <textarea name="additional_notes" rows="4"
+                      placeholder="e.g., We have a field trip on Wednesday, skip afternoon centers. Focus on fine motor this week. New student starting Thursday."></textarea>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Students Included ({{ students | length }})</h2>
+        <div class="student-chips">
+            {% for student in students %}
+                <span class="chip">{{ student.name }}</span>
+            {% endfor %}
+        </div>
+        <p class="help-text">Names will be replaced with "Child 1", "Child 2", etc. before sending to ChatGPT</p>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">Generate Prompt ✨</button>
+    </div>
+</form>
+{% endblock %}

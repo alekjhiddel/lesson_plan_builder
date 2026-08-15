@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>Welcome! 🌟</h1>
+    <p class="subtitle">Here's your classroom at a glance</p>
+</div>
+
+<div class="dashboard-grid">
+    <div class="card stat-card">
+        <div class="stat-icon">👧</div>
+        <div class="stat-info">
+            <h3>{{ student_count }}</h3>
+            <p>Students</p>
+        </div>
+    </div>
+    
+    <div class="card stat-card">
+        <div class="stat-icon">🎨</div>
+        <div class="stat-info">
+            <h3>{{ themes.month }}</h3>
+            <p>{{ themes.themes[0] }}</p>
+        </div>
+    </div>
+    
+    <div class="card stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+            <h3>{{ config.num_aides }} + 1</h3>
+            <p>Aides + Floater</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-actions">
+    <h2>Quick Actions</h2>
+    <div class="action-grid">
+        <a href="{{ url_for('generate') }}" class="action-card">
+            <span class="action-icon">✨</span>
+            <h3>Generate This Week's Plans</h3>
+            <p>Create a new set of lesson plans</p>
+        </a>
+        <a href="{{ url_for('students_list') }}" class="action-card">
+            <span class="action-icon">👧</span>
+            <h3>Update Student Info</h3>
+            <p>Add goals, update needs, add notes</p>
+        </a>
+        <a href="{{ url_for('knowledge_base') }}" class="action-card">
+            <span class="action-icon">📚</span>
+            <h3>Add a Resource</h3>
+            <p>Scrape a website for teaching ideas</p>
+        </a>
+    </div>
+</div>
+
+{% if themes %}
+<div class="card theme-card">
+    <h2>🎨 This Month's Theme Ideas</h2>
+    <div class="theme-tags">
+        {% for theme in themes.themes %}
+            <span class="tag">{{ theme }}</span>
+        {% endfor %}
+    </div>
+    <p class="theme-activities"><strong>Activity ideas:</strong> {{ themes.activities | join(', ') }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

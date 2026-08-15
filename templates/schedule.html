@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Schedule Generator - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📅 Schedule Generator</h1>
+    <p class="subtitle">Let the computer figure out aide coverage — you have enough to worry about!</p>
+</div>
+
+{% if not schedule_config.get('configured') %}
+<div class="card setup-prompt">
+    <h2>First, let's set up your staffing</h2>
+    <p>Tell me about your team, and I'll figure out the schedule.</p>
+    <a href="{{ url_for('schedule_setup') }}" class="btn btn-primary btn-large">Set Up Staffing →</a>
+</div>
+{% else %}
+
+<div class="schedule-summary">
+    <div class="card stat-card">
+        <div class="stat-icon">👩‍🏫</div>
+        <div class="stat-info">
+            <h3>You + {{ schedule_config.num_dedicated_aides }}</h3>
+            <p>Dedicated Aides</p>
+        </div>
+    </div>
+    {% if schedule_config.has_floater %}
+    <div class="card stat-card">
+        <div class="stat-icon">🏃</div>
+        <div class="stat-info">
+            <h3>1</h3>
+            <p>Floater</p>
+        </div>
+    </div>
+    {% endif %}
+    {% if schedule_config.partner_teacher.enabled %}
+    <div class="card stat-card">
+        <div class="stat-icon">🤝</div>
+        <div class="stat-info">
+            <h3>Partner: {{ schedule_config.partner_teacher.num_aides }}</h3>
+            <p>Partner's Aides</p>
+        </div>
+    </div>
+    {% endif %}
+    <div class="card stat-card">
+        <div class="stat-icon">🏠</div>
+        <div class="stat-info">
+            <h3>{{ homeroom_count }}</h3>
+            <p>Go to Homeroom</p>
+        </div>
+    </div>
+</div>
+
+<div class="schedule-actions">
+    <form method="POST" action="{{ url_for('generate_schedule') }}">
+        <button type="submit" class="btn btn-primary btn-large">🔄 Generate Optimized Schedule</button>
+    </form>
+    <a href="{{ url_for('schedule_setup') }}" class="btn btn-secondary">Edit Staffing Setup</a>
+</div>
+
+{% if schedule %}
+<div class="schedule-result">
+    {{ schedule_html | safe }}
+</div>
+
+<div class="schedule-export">
+    <h3>Use This Schedule</h3>
+    <p>The schedule above will be automatically included when you generate lesson plans, so ChatGPT knows exactly who is where.</p>
+    <button onclick="window.print()" class="btn btn-secondary">🖨️ Print Schedule Grid</button>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Lesson Plan - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📋 Your Lesson Plan</h1>
+    <div class="header-actions">
+        <button onclick="window.print()" class="btn btn-secondary">🖨️ Print</button>
+        <a href="{{ url_for('generate') }}" class="btn btn-primary">Generate Another</a>
+    </div>
+</div>
+
+<div class="plan-result">
+    <div class="plan-content" id="plan-content">
+        {{ plan | replace('\n', '<br>') | safe }}
+    </div>
+</div>
+
+{% if raw_response %}
+<details class="raw-response">
+    <summary>Show raw response (before name replacement)</summary>
+    <pre>{{ raw_response }}</pre>
+</details>
+{% endif %}
+{% endblock %}

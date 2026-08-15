@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Resources - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📚 Teaching Resources</h1>
+    <p class="subtitle">Add websites to build your knowledge base. These inform your lesson plans!</p>
+</div>
+
+<div class="card scraper-card">
+    <h2>Add a New Resource</h2>
+    <p>Found a great website with teaching ideas? Paste the link below and we'll save the key content.</p>
+    <div class="scraper-input">
+        <input type="url" id="scrape-url" placeholder="https://example.com/great-lesson-ideas" class="input-large">
+        <button onclick="scrapeUrl()" class="btn btn-primary" id="scrape-btn">
+            🔍 Scrape & Save
+        </button>
+    </div>
+    <div id="scrape-status" class="scrape-status"></div>
+</div>
+
+{% if resources %}
+<div class="resources-list">
+    <h2>Saved Resources ({{ resources | length }})</h2>
+    {% for resource in resources %}
+    <div class="card resource-card">
+        <div class="resource-header">
+            <h3>{{ resource.title[:80] }}</h3>
+            <span class="resource-date">{{ resource.scraped_at[:10] }}</span>
+        </div>
+        <p class="resource-url">🔗 <a href="{{ resource.url }}" target="_blank">{{ resource.url[:60] }}...</a></p>
+        <p class="resource-summary">{{ resource.summary[:200] }}...</p>
+        <div class="resource-actions">
+            <form method="POST" action="{{ url_for('delete_kb_resource', resource_id=resource.id) }}" style="display:inline;"
+                  onsubmit="return confirm('Remove this resource?')">
+                <button type="submit" class="btn btn-small btn-danger">Remove</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">📚</div>
+    <h2>No resources yet</h2>
+    <p>Add websites with teaching ideas to help generate better lesson plans.</p>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function scrapeUrl() {
+    const url = document.getElementById('scrape-url').value.trim();
+    const btn = document.getElementById('scrape-btn');
+    const status = document.getElementById('scrape-status');
+    
+    if (!url) {
+        status.innerHTML = '<span class="error">Please enter a URL</span>';
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Scraping...';
+    status.innerHTML = '<span class="info">Fetching content from the website...</span>';
+    
+    fetch('/knowledge-base/scrape', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'url=' + encodeURIComponent(url)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            status.innerHTML = '<span class="success">✅ ' + data.message + '</span>';
+            document.getElementById('scrape-url').value = '';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            status.innerHTML = '<span class="error">❌ ' + data.error + '</span>';
+        }
+    })
+    .catch(err => {
+        status.innerHTML = '<span class="error">❌ Something went wrong. Try again.</span>';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Scrape & Save';
+    });
+}
+</script>
+{% endblock %}

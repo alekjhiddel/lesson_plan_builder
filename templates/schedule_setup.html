@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Schedule Setup - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📅 Staffing Setup</h1>
+    <p class="subtitle">Tell me about your team so I can build the best schedule</p>
+</div>
+
+<form method="POST" class="schedule-setup-form">
+    <div class="form-section">
+        <h2>Your Classroom Aides</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="num_dedicated_aides">How many dedicated aides do you have?</label>
+                <input type="number" id="num_dedicated_aides" name="num_dedicated_aides" 
+                       value="{{ config.num_dedicated_aides }}" min="0" max="10">
+                <span class="help-text">These are YOUR aides who are in your room all day</span>
+            </div>
+        </div>
+        
+        <div class="form-group" id="aide-names-section">
+            <label>Aide names (optional — for the schedule grid)</label>
+            <div id="aide-names-container">
+                {% for name in config.aide_names %}
+                <input type="text" name="aide_names" value="{{ name }}" placeholder="e.g., Mrs. Smith" class="aide-name-input">
+                {% endfor %}
+            </div>
+            <span class="help-text">Helps you read the schedule faster — just first names or nicknames are fine</span>
+        </div>
+        
+        <div class="form-group">
+            <label>Do you have a floater aide?</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="has_floater" value="yes" 
+                           {{ 'checked' if config.has_floater }}> Yes
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="has_floater" value="no"
+                           {{ 'checked' if not config.has_floater }}> No
+                </label>
+            </div>
+            <span class="help-text">A floater can cover multiple rooms, handle transitions, escort to homeroom</span>
+        </div>
+        
+        <div class="form-group">
+            <label for="floater_name">Floater's name</label>
+            <input type="text" id="floater_name" name="floater_name" 
+                   value="{{ config.floater_name }}" placeholder="e.g., Mrs. Jones">
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Partner Teacher</h2>
+        <p class="help-text">If you share a connected room with another teacher, their aides might help cover when yours are escorting to homeroom.</p>
+        
+        <div class="form-group">
+            <label>Do you have a partner teacher with a connected room?</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="partner_enabled" value="yes"
+                           {{ 'checked' if config.partner_teacher.enabled }}
+                           onchange="document.getElementById('partner-details').style.display='block'"> Yes
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="partner_enabled" value="no"
+                           {{ 'checked' if not config.partner_teacher.enabled }}
+                           onchange="document.getElementById('partner-details').style.display='none'"> No
+                </label>
+            </div>
+        </div>
+        
+        <div id="partner-details" style="display: {{ 'block' if config.partner_teacher.enabled else 'none' }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="partner_name">Partner teacher's name</label>
+                    <input type="text" id="partner_name" name="partner_name"
+                           value="{{ config.partner_teacher.name }}" placeholder="e.g., Mrs. Davis">
+                </div>
+                <div class="form-group">
+                    <label for="partner_num_aides">Their number of aides</label>
+                    <input type="number" id="partner_num_aides" name="partner_num_aides"
+                           value="{{ config.partner_teacher.num_aides }}" min="0" max="10">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="partner_num_students">How many students do they have?</label>
+                <input type="number" id="partner_num_students" name="partner_num_students"
+                       value="{{ config.partner_teacher.num_students }}" min="0" max="20">
+            </div>
+            <div class="form-group">
+                <label>Does the floater cover both rooms?</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="shared_floater" value="yes"
+                               {{ 'checked' if config.partner_teacher.shared_floater }}> Yes, shared between both
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="shared_floater" value="no"
+                               {{ 'checked' if not config.partner_teacher.shared_floater }}> No, floater is just mine
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="partner_notes">Anything else about the partnership?</label>
+                <textarea id="partner_notes" name="partner_notes" rows="2"
+                          placeholder="e.g., We share lunch duty, their aide helps during our centers on Tuesdays">{{ config.partner_teacher.notes }}</textarea>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Room Coverage Rules</h2>
+        <div class="form-group">
+            <label for="min_aides_in_own_room">Minimum aides in YOUR room at all times</label>
+            <select id="min_aides_in_own_room" name="min_aides_in_own_room">
+                <option value="1" {{ 'selected' if config.get('min_aides_in_own_room', 1) == 1 }}>1 aide (you + 1 aide minimum)</option>
+                <option value="2" {{ 'selected' if config.get('min_aides_in_own_room', 1) == 2 }}>2 aides (you + 2 aides minimum)</option>
+            </select>
+            <span class="help-text">Safety minimum — the schedule won't pull an aide to escort if it would leave you short</span>
+        </div>
+        <p class="help-text">🔒 <strong>Hard rule:</strong> If you have a partner teacher, at least 1 aide will always remain in EACH room. The schedule engine won't assign an escort that would leave either room with zero aides.</p>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">Save & Generate Schedule</button>
+        <a href="{{ url_for('schedule') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

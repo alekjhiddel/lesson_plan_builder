@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Settings - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>⚙️ Settings</h1>
+</div>
+
+<form method="POST" class="settings-form">
+    <div class="form-section">
+        <h2>Classroom Info</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="teacher_name">Your Name</label>
+                <input type="text" id="teacher_name" name="teacher_name" value="{{ config.teacher_name }}">
+            </div>
+            <div class="form-group">
+                <label for="school_name">School Name</label>
+                <input type="text" id="school_name" name="school_name" value="{{ config.school_name }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="class_size">Number of Students</label>
+                <input type="number" id="class_size" name="class_size" value="{{ config.class_size }}">
+            </div>
+            <div class="form-group">
+                <label for="num_aides">Number of Aides</label>
+                <input type="number" id="num_aides" name="num_aides" value="{{ config.num_aides }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Floater Aide?</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="has_floater" value="yes" {{ 'checked' if config.has_floater }}> Yes
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="has_floater" value="no" {{ 'checked' if not config.has_floater }}> No
+                </label>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="school_start_time">School Start</label>
+                <input type="time" id="school_start_time" name="school_start_time" value="{{ config.school_start_time }}">
+            </div>
+            <div class="form-group">
+                <label for="school_end_time">School End</label>
+                <input type="time" id="school_end_time" name="school_end_time" value="{{ config.school_end_time }}">
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>🤖 AI Settings (Advanced)</h2>
+        <p class="help-text">By default, this app uses copy/paste with ChatGPT. If you want it to talk to ChatGPT automatically, enter your API key below.</p>
+        <div class="form-group">
+            <label for="api_key">OpenAI API Key <span class="optional">(optional)</span></label>
+            <input type="password" id="api_key" name="api_key" value="{{ config.api_key }}"
+                   placeholder="sk-...">
+            <span class="help-text">🔒 Stored locally only. Get one at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></span>
+        </div>
+        <div class="form-group">
+            <label>Enable API mode?</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="api_enabled" value="yes" {{ 'checked' if config.api_enabled }}> Yes (send directly to ChatGPT)
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="api_enabled" value="no" {{ 'checked' if not config.api_enabled }}> No (copy/paste mode)
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+    </div>
+</form>
+{% endblock %}

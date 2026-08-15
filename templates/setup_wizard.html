@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Welcome - IEP Lesson Planner{% endblock %}
+{% block content %}
+<div class="setup-container">
+    <div class="setup-header">
+        <h1>🍎 Welcome to IEP Lesson Planner!</h1>
+        <p>Let's get your classroom set up. This only takes a minute.</p>
+        <p class="privacy-note">🔒 Everything you enter stays right here on your computer. Student names and data are never sent anywhere.</p>
+    </div>
+    
+    <form method="POST" class="setup-form">
+        <div class="form-section">
+            <h2>About You</h2>
+            <div class="form-group">
+                <label for="teacher_name">Your Name</label>
+                <input type="text" id="teacher_name" name="teacher_name" placeholder="e.g., Mrs. Johnson" required>
+            </div>
+            <div class="form-group">
+                <label for="school_name">School Name <span class="optional">(optional)</span></label>
+                <input type="text" id="school_name" name="school_name" placeholder="e.g., Lincoln Elementary">
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h2>Your Classroom</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="class_size">How many students?</label>
+                    <input type="number" id="class_size" name="class_size" value="9" min="1" max="20">
+                </div>
+                <div class="form-group">
+                    <label for="num_aides">How many aides?</label>
+                    <input type="number" id="num_aides" name="num_aides" value="2" min="0" max="10">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Do you have a floater aide?</label>
+                <div class="radio-group">
+                    <label class="radio-label">
+                        <input type="radio" name="has_floater" value="yes" checked> Yes
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="has_floater" value="no"> No
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-section">
+            <h2>School Schedule</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="school_start_time">School starts at</label>
+                    <input type="time" id="school_start_time" name="school_start_time" value="08:00">
+                </div>
+                <div class="form-group">
+                    <label for="school_end_time">School ends at</label>
+                    <input type="time" id="school_end_time" name="school_end_time" value="14:35">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">Get Started! 🚀</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
