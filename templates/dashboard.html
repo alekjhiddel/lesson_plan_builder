@@ -1,68 +1,395 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - SPARK{% endblock %}
+{% block title %}SPARK — Dashboard{% endblock %}
+{% block body_class %}page-dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
 {% block content %}
-<div class="page-header">
-    <h1>Welcome! 🌟</h1>
-    <p class="subtitle">Here's your classroom at a glance</p>
-</div>
-
-<div class="dashboard-grid">
-    <div class="card stat-card">
-        <div class="stat-icon">👧</div>
-        <div class="stat-info">
-            <h3>{{ student_count }}</h3>
-            <p>Students</p>
+<div class="dashboard-container">
+    <!-- Welcome Header -->
+    <section class="dashboard-welcome">
+        <div class="welcome-text">
+            <h2 id="welcomeGreeting">Good morning! ☀️</h2>
+            <p class="welcome-subtitle" id="welcomeSubtitle">Here's your SPARK dashboard</p>
         </div>
-    </div>
-    
-    <div class="card stat-card">
-        <div class="stat-icon">🎨</div>
-        <div class="stat-info">
-            <h3>{{ themes.month }}</h3>
-            <p>{{ themes.themes[0] }}</p>
+        <div class="welcome-stats" id="quickStats">
+            <!-- Populated by JS based on program_type -->
         </div>
-    </div>
-    
-    <div class="card stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-info">
-            <h3>{{ config.num_aides }} + 1</h3>
-            <p>Aides + Floater</p>
+    </section>
+
+    <!-- Main Menu Cards -->
+    <section class="dashboard-cards" id="dashboardCards">
+        <!-- IEPs & Compliance -->
+        <a href="/ieps" class="menu-card" data-feature="ieps">
+            <div class="card-icon">📋</div>
+            <div class="card-content">
+                <h3 class="card-title">IEPs & Compliance</h3>
+                <p class="card-desc">Goal tracking, ARC dates, progress reports, compliance checklists</p>
+                <div class="card-status">
+                    <span class="status-badge status-attention" id="iepStatus">2 ARCs this month</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+
+        <!-- Lesson Plans -->
+        <a href="/lessons" class="menu-card" data-feature="lessons">
+            <div class="card-icon">📅</div>
+            <div class="card-content">
+                <h3 class="card-title">Lesson Plans</h3>
+                <p class="card-desc" id="lessonDesc">Weekly plans, activities, and materials</p>
+                <div class="card-status">
+                    <span class="status-badge status-ok" id="lessonStatus">This week planned</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+
+        <!-- Scheduling -->
+        <a href="/schedule" class="menu-card" data-feature="scheduling">
+            <div class="card-icon">🗓️</div>
+            <div class="card-content">
+                <h3 class="card-title">Scheduling</h3>
+                <p class="card-desc" id="scheduleDesc">Daily schedule, aide assignments, rotations</p>
+                <div class="card-status">
+                    <span class="status-badge status-neutral" id="scheduleStatus">View today</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+
+        <!-- Data & Progress -->
+        <a href="/data" class="menu-card" data-feature="data">
+            <div class="card-icon">📊</div>
+            <div class="card-content">
+                <h3 class="card-title">Data & Progress</h3>
+                <p class="card-desc" id="dataDesc">Data collection, progress monitoring, graphing</p>
+                <div class="card-status">
+                    <span class="status-badge status-neutral" id="dataStatus">12 data points this week</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+
+        <!-- Parent Communications -->
+        <a href="/communications" class="menu-card" data-feature="communications">
+            <div class="card-icon">✉️</div>
+            <div class="card-content">
+                <h3 class="card-title">Parent Communications</h3>
+                <p class="card-desc">Daily notes, newsletters, ARC notifications</p>
+                <div class="card-status">
+                    <span class="status-badge status-neutral" id="commStatus">3 to send today</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+
+        <!-- NTI Packets -->
+        <a href="/nti" class="menu-card" data-feature="nti">
+            <div class="card-icon">🏠</div>
+            <div class="card-content">
+                <h3 class="card-title">NTI Packets</h3>
+                <p class="card-desc">Non-Traditional Instruction day materials and tracking</p>
+                <div class="card-status">
+                    <span class="status-badge status-neutral" id="ntiStatus">Ready</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+
+        <!-- My Students -->
+        <a href="/students" class="menu-card" data-feature="students">
+            <div class="card-icon">👧</div>
+            <div class="card-content">
+                <h3 class="card-title">My Students</h3>
+                <p class="card-desc">Student profiles, accommodations, quick reference</p>
+                <div class="card-status">
+                    <span class="status-badge status-neutral" id="studentStatus">8 students</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+
+        <!-- Partner Room -->
+        <a href="/partner" class="menu-card" data-feature="partner">
+            <div class="card-icon">🤝</div>
+            <div class="card-content">
+                <h3 class="card-title">Partner Room</h3>
+                <p class="card-desc" id="partnerDesc">Shared resources, cross-room coordination</p>
+                <div class="card-status">
+                    <span class="status-badge status-neutral" id="partnerStatus">Connected</span>
+                </div>
+            </div>
+            <div class="card-arrow">→</div>
+        </a>
+    </section>
+
+    <!-- Contextual Features (shown based on program_type) -->
+    <section class="dashboard-contextual" id="contextualSection">
+        <!-- MSD-specific -->
+        <div class="contextual-card hidden" data-show-for="msd">
+            <div class="contextual-icon">🧩</div>
+            <div class="contextual-content">
+                <h4>Life Skills Focus</h4>
+                <p>Visual schedules, task analysis, and independence tracking are optimized for your MSD classroom.</p>
+            </div>
         </div>
-    </div>
+
+        <!-- LBD-specific -->
+        <div class="contextual-card hidden" data-show-for="lbd">
+            <div class="contextual-icon">📈</div>
+            <div class="contextual-content">
+                <h4>Academic & Behavior Tools</h4>
+                <p>Behavior plan tracking, academic progress charts, and intervention data are front and center.</p>
+            </div>
+        </div>
+
+        <!-- Preschool-specific -->
+        <div class="contextual-card hidden" data-show-for="preschool">
+            <div class="contextual-icon">🌈</div>
+            <div class="contextual-content">
+                <h4>Developmental Domains</h4>
+                <p>Track progress across cognitive, communication, social-emotional, adaptive, and motor domains.</p>
+            </div>
+        </div>
+
+        <!-- Resource-specific -->
+        <div class="contextual-card hidden" data-show-for="resource">
+            <div class="contextual-icon">🔄</div>
+            <div class="contextual-content">
+                <h4>Student Rotation Manager</h4>
+                <p>Your pull-out schedule and group rotations are optimized for multi-grade service delivery.</p>
+            </div>
+        </div>
+
+        <!-- Co-teach-specific -->
+        <div class="contextual-card hidden" data-show-for="coteach">
+            <div class="contextual-icon">👥</div>
+            <div class="contextual-content">
+                <h4>Co-Planning Hub</h4>
+                <p>Shared lesson planning, accommodation overlays, and partner communication tools are highlighted.</p>
+            </div>
+        </div>
+
+        <!-- Transition-specific -->
+        <div class="contextual-card hidden" data-show-for="transition">
+            <div class="contextual-icon">🎯</div>
+            <div class="contextual-content">
+                <h4>Community & Vocational</h4>
+                <p>Job site schedules, community-based instruction logs, and independence checklists ready to go.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Section: Theme + Stats -->
+    <section class="dashboard-bottom">
+        <!-- Monthly Theme -->
+        <div class="bottom-card theme-card">
+            <div class="theme-header">
+                <h3>🎨 This Month's Theme</h3>
+                <span class="theme-month" id="themeMonth">August</span>
+            </div>
+            <div class="theme-body" id="themeBody">
+                <div class="theme-suggestion">
+                    <strong id="themeName">Back to School / All About Me</strong>
+                    <p id="themeDesc">Routines, classroom expectations, getting to know you activities, sensory exploration of new space.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="bottom-card stats-card">
+            <h3>📊 At a Glance</h3>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-item">
+                    <span class="stat-number" id="statStudents">8</span>
+                    <span class="stat-label">Students</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="statAides">2</span>
+                    <span class="stat-label">Aides</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="statArcs">2</span>
+                    <span class="stat-label">Upcoming ARCs</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="statGoals">24</span>
+                    <span class="stat-label">Active Goals</span>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 
-<div class="dashboard-actions">
-    <h2>Quick Actions</h2>
-    <div class="action-grid">
-        <a href="{{ url_for('generate') }}" class="action-card">
-            <span class="action-icon">✨</span>
-            <h3>Generate This Week's Plans</h3>
-            <p>Create a new set of lesson plans</p>
-        </a>
-        <a href="{{ url_for('students_list') }}" class="action-card">
-            <span class="action-icon">👧</span>
-            <h3>Update Student Info</h3>
-            <p>Add goals, update needs, add notes</p>
-        </a>
-        <a href="{{ url_for('knowledge_base') }}" class="action-card">
-            <span class="action-icon">📚</span>
-            <h3>Add a Resource</h3>
-            <p>Scrape a website for teaching ideas</p>
-        </a>
-    </div>
-</div>
+<script>
+// ===== DASHBOARD INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', function() {
+    const config = JSON.parse(localStorage.getItem('spark_config') || '{}');
 
-{% if themes %}
-<div class="card theme-card">
-    <h2>🎨 This Month's Theme Ideas</h2>
-    <div class="theme-tags">
-        {% for theme in themes.themes %}
-            <span class="tag">{{ theme }}</span>
-        {% endfor %}
-    </div>
-    <p class="theme-activities"><strong>Activity ideas:</strong> {{ themes.activities | join(', ') }}</p>
-</div>
-{% endif %}
+    // Redirect to setup if not configured
+    if (!config.setup_completed) {
+        window.location.href = '/setup';
+        return;
+    }
 
+    initGreeting(config);
+    initProgramTypeFeatures(config);
+    initTheme(config);
+    initStats(config);
+});
+
+// ===== GREETING =====
+function initGreeting(config) {
+    const hour = new Date().getHours();
+    let greeting = 'Good evening';
+    if (hour < 12) greeting = 'Good morning ☀️';
+    else if (hour < 17) greeting = 'Good afternoon 🌤️';
+
+    const el = document.getElementById('welcomeGreeting');
+    if (el) el.textContent = `${greeting}, ${config.teacher_name || 'Teacher'}!`;
+
+    const subtitle = document.getElementById('welcomeSubtitle');
+    if (subtitle) {
+        const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        subtitle.textContent = today;
+    }
+}
+
+// ===== PROGRAM TYPE FEATURES =====
+function initProgramTypeFeatures(config) {
+    const type = config.program_type;
+    if (!type) return;
+
+    // Show contextual cards for this program type
+    document.querySelectorAll('[data-show-for]').forEach(el => {
+        if (el.dataset.showFor === type) {
+            el.classList.remove('hidden');
+        }
+    });
+
+    // Customize card descriptions based on type
+    const customizations = {
+        msd: {
+            lessonDesc: 'Life skills lessons, visual supports, structured activities',
+            scheduleDesc: 'Visual schedule, aide rotations, station assignments',
+            dataDesc: 'Trial data, task analysis, behavior frequency',
+            partnerDesc: 'Shared aide coordination, material sharing'
+        },
+        lbd: {
+            lessonDesc: 'Academic interventions, behavior-embedded lessons',
+            scheduleDesc: 'Pull-out groups, testing schedules, interventions',
+            dataDesc: 'Academic probes, behavior tracking, CBM data',
+            partnerDesc: 'Gen ed teacher coordination, shared behavior plans'
+        },
+        preschool: {
+            lessonDesc: 'Play-based activities, circle time, centers',
+            scheduleDesc: 'Center rotations, therapy schedules, transitions',
+            dataDesc: 'Developmental milestones, play-based assessment',
+            partnerDesc: 'Head Start coordination, therapy team'
+        },
+        resource: {
+            lessonDesc: 'Targeted intervention groups, skill-based plans',
+            scheduleDesc: 'Pull-out rotation, student group times',
+            dataDesc: 'Progress monitoring probes, intervention response',
+            partnerDesc: 'Gen ed teacher updates, classroom modifications'
+        },
+        coteach: {
+            lessonDesc: 'Co-planned lessons, accommodation overlays',
+            scheduleDesc: 'Co-teaching model schedule, flexible grouping',
+            dataDesc: 'Accommodation effectiveness, grade tracking',
+            partnerDesc: 'Co-teacher shared workspace, planning docs'
+        },
+        transition: {
+            lessonDesc: 'Vocational lessons, community skills, job training',
+            scheduleDesc: 'Job site schedule, community outings, transport',
+            dataDesc: 'Independence ratings, job performance, community skills',
+            partnerDesc: 'Job coach coordination, agency partnerships'
+        }
+    };
+
+    const custom = customizations[type];
+    if (custom) {
+        Object.entries(custom).forEach(([id, text]) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        });
+    }
+
+    // Reorder cards to prioritize relevant features
+    const featurePriority = {
+        msd: ['scheduling', 'students', 'data', 'lessons', 'ieps', 'communications', 'nti', 'partner'],
+        lbd: ['lessons', 'data', 'ieps', 'students', 'communications', 'scheduling', 'nti', 'partner'],
+        preschool: ['lessons', 'data', 'students', 'communications', 'scheduling', 'ieps', 'nti', 'partner'],
+        resource: ['scheduling', 'lessons', 'data', 'students', 'ieps', 'communications', 'nti', 'partner'],
+        coteach: ['lessons', 'partner', 'ieps', 'data', 'students', 'communications', 'scheduling', 'nti'],
+        transition: ['scheduling', 'students', 'data', 'lessons', 'ieps', 'partner', 'communications', 'nti']
+    };
+
+    const priority = featurePriority[type];
+    if (priority) {
+        const container = document.getElementById('dashboardCards');
+        const cards = Array.from(container.querySelectorAll('.menu-card'));
+        priority.forEach(feature => {
+            const card = cards.find(c => c.dataset.feature === feature);
+            if (card) container.appendChild(card);
+        });
+    }
+}
+
+// ===== MONTHLY THEME =====
+function initTheme(config) {
+    const type = config.program_type || 'msd';
+    const month = new Date().getMonth(); // 0-indexed
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+
+    const themes = {
+        msd: [
+            { name: 'Winter / Snow & Cold', desc: 'Winter clothing, hot/cold concepts, seasonal sensory activities' },
+            { name: 'Love & Friendship', desc: 'Emotions, friendship skills, valentines, social stories' },
+            { name: 'Weather & Seasons', desc: 'Spring changes, weather vocabulary, planting seeds' },
+            { name: 'Growing & Gardens', desc: 'Plant life cycle, gardening tasks, outdoor sensory' },
+            { name: 'Community Helpers', desc: 'Community workers, safety, field trips, social skills in community' },
+            { name: 'Summer / Water', desc: 'Water play, summer safety, ESY prep activities' },
+            { name: 'Summer / ESY', desc: 'Maintenance of skills, fun structured activities' },
+            { name: 'Back to School / All About Me', desc: 'Routines, classroom expectations, getting to know you, sensory exploration' },
+            { name: 'Fall / Apples & Pumpkins', desc: 'Fall changes, apple/pumpkin themed life skills, cooking' },
+            { name: 'Community & Safety', desc: 'Fire safety, Halloween safety, community skills' },
+            { name: 'Thankfulness & Family', desc: 'Family, gratitude, cooking/meal prep, social skills' },
+            { name: 'Holidays & Celebrations', desc: 'Cultural celebrations, gift-giving social skills, winter sensory' }
+        ],
+        lbd: [
+            { name: 'Goal Setting & Organization', desc: 'New year goals, planner skills, self-monitoring' },
+            { name: 'Reading Month', desc: 'Reading challenges, book reports, literacy celebrations' },
+            { name: 'Testing Prep & Strategies', desc: 'Test-taking strategies, accommodations review, study skills' },
+            { name: 'Writing Workshop', desc: 'Writing process, journaling, creative expression' },
+            { name: 'Review & Reflection', desc: 'Year in review, portfolio building, goal check-in' },
+            { name: 'Summer Skills', desc: 'Maintaining skills, reading lists, ESY focus' },
+            { name: 'Summer / ESY', desc: 'Skill maintenance, structured practice' },
+            { name: 'Back to School / Expectations', desc: 'Routines, self-advocacy, behavior expectations' },
+            { name: 'Study Skills & Habits', desc: 'Organization, time management, homework routines' },
+            { name: 'Self-Advocacy', desc: 'Understanding your IEP, asking for help, self-monitoring' },
+            { name: 'Social-Emotional Skills', desc: 'Gratitude, friendship, coping strategies' },
+            { name: 'Reflection & Planning', desc: 'Semester review, goal adjustment, holiday coping' }
+        ]
+    };
+
+    // Fallback to MSD themes if type not found
+    const typeThemes = themes[type] || themes.msd;
+    const currentTheme = typeThemes[month];
+
+    document.getElementById('themeMonth').textContent = monthNames[month];
+    document.getElementById('themeName').textContent = currentTheme.name;
+    document.getElementById('themeDesc').textContent = currentTheme.desc;
+}
+
+// ===== STATS =====
+function initStats(config) {
+    if (config.staffing) {
+        const aidesEl = document.getElementById('statAides');
+        if (aidesEl) aidesEl.textContent = config.staffing.num_aides || 0;
+    }
+}
+</script>
 {% endblock %}

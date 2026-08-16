@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block title %}NTI Packet — {{ packet.student.first_name }} {{ packet.student.name.split(' ')[-1] }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 800px;">
+    
+    <!-- Print-Only Header (hidden on screen, shown on print) -->
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { font-size: 14px; line-height: 1.6; }
+            .activity-card { break-inside: avoid; }
+            .day-section { page-break-before: always; }
+            .day-section:first-of-type { page-break-before: auto; }
+            .parent-instructions { page-break-after: always; }
+        }
+        @media screen {
+            .print-only { display: none; }
+        }
+        .activity-card {
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #fefefe;
+        }
+        .activity-card h4 {
+            color: #2c5282;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+        .materials-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 10px 0;
+        }
+        .day-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 15px 25px;
+            margin-bottom: 20px;
+        }
+        .parent-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 25px;
+        }
+        .data-prompt {
+            border: 2px dashed #adb5bd;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-top: 10px;
+            font-style: italic;
+        }
+        .packet-body { font-size: 1.05rem; line-height: 1.8; }
+    </style>
+
+    <!-- Screen-Only Navigation Bar -->
+    <div class="no-print mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('nti_page') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Generator
+            </a>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i>Print Packet
+                </button>
+                <button class="btn btn-outline-primary" onclick="downloadPDF()">
+                    <i class="bi bi-file-pdf me-1"></i>Save PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Info Bar (screen only) -->
+    <div class="no-print alert alert-info mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <strong>Student:</strong> {{ packet.student.first_name }} {{ packet.student.name.split(' ')[-1] }}
+            </div>
+            <div class="col-md-3">
+                <strong>Category:</strong> 
+                <span class="badge bg-primary">{{ packet.student.category|upper }}</span>
+            </div>
+            <div class="col-md-3">
+                <strong>Days:</strong> {{ packet.num_days }}
+            </div>
+            <div class="col-md-2">
+                <strong>Comm:</strong> {{ packet.student.communication_mode }}
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- PARENT INSTRUCTION PAGE                        -->
+    <!-- ═══════════════════════════════════════════════ -->
+    <div class="parent-instructions packet-body">
+        <div class="parent-header text-center">
+            <h1 class="display-6 mb-1">📚 Learning at Home!</h1>
+            <h2 class="h4 mb-0">NTI Packet for {{ packet.student.first_name }}</h2>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body" style="font-size: 1.1rem;">
+                <p class="lead">
+                    Dear {{ packet.parent_name }},
+                </p>
+                <p>
+                    School is closed, but learning continues at home! Here are some activities 
+                    for <strong>{{ packet.student.first_name }}</strong>.
+                </p>
+
+                <div class="alert alert-success">
+                    <h5 class="alert-heading">✅ How to Use This Packet:</h5>
+                    <ul class="mb-0" style="font-size: 1.05rem;">
+                        <li>Pick <strong>3-5 activities per day</strong> (you don't have to do ALL of them)</li>
+                        <li>Do activities when {{ packet.student.first_name }} is <strong>calm and happy</strong></li>
+                        <li>Keep it short — <strong>10-15 minutes</strong> per activity is great!</li>
+                        <li>Take <strong>breaks</strong> between activities</li>
+                        <li>It's okay to <strong>stop</strong> if {{ packet.student.first_name }} gets frustrated</li>
+                        <li>ANY attempt counts — we celebrate <strong>trying!</strong></li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-info">
+                    <h5 class="alert-heading">💬 Communication Tips:</h5>
+                    <p class="mb-0" style="font-size: 1.05rem;">
+                        {% if packet.student.communication_mode == 'pecs' %}
+                        Use {{ packet.student.first_name }}'s <strong>picture communication book/board</strong> during activities. 
+                        Help them point to or hand you pictures to make choices and requests.
+                        {% elif packet.student.communication_mode == 'device' %}
+                        Keep {{ packet.student.first_name }}'s <strong>communication device</strong> nearby during activities.
+                        Model using it to make requests and comments.
+                        {% elif packet.student.communication_mode == 'gestures' %}
+                        Watch for {{ packet.student.first_name }}'s <strong>gestures and sounds</strong> during activities.
+                        Respond to any communication attempts — pointing, reaching, and sounds all count!
+                        {% else %}
+                        Talk with {{ packet.student.first_name }} during activities. 
+                        Ask <strong>simple questions</strong> and wait for answers. Praise all attempts!
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="alert alert-warning">
+                    <h5 class="alert-heading">⭐ Tips for Success:</h5>
+                    <ul class="mb-0" style="font-size: 1.05rem;">
+                        <li>Do activities at a <strong>table or quiet area</strong> (less distractions)</li>
+                        <li><strong>Praise every attempt!</strong> ("Good trying!" "Nice work!")</li>
+                        <li>If something is too hard, make it <strong>easier or skip it</strong></li>
+                        <li>Use items you <strong>already have at home</strong> — don't buy anything new</li>
+                        <li>Hand-over-hand help is <strong>okay!</strong></li>
+                        <li><strong>Have fun!</strong> Learning should feel good 😊</li>
+                    </ul>
+                </div>
+
+                <div class="text-center mt-4 p-3 bg-light rounded">
+                    <p class="mb-1"><strong>Questions? Contact:</strong></p>
+                    <p class="mb-0">{{ teacher_name or '[Teacher Name]' }} · {{ teacher_contact or '[Phone/Email]' }}</p>
+                </div>
+
+                <div class="text-center mt-3">
+                    <p class="text-muted">
+                        <strong>Please return this packet and data sheet when school resumes.</strong><br>
+                        Thank you for being {{ packet.student.first_name }}'s learning partner! 💛
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- DAILY ACTIVITY PAGES                           -->
+    <!-- ═══════════════════════════════════════════════ -->
+    {% for day in packet.days %}
+    <div class="day-section">
+        <div class="day-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="h3 mb-0">📅 Day {{ day.day_number }}</h2>
+                    <p class="mb-0 opacity-75">{{ day.date }}</p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-white text-dark fs-6">
+                        {{ day.activities|length }} Activities
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {% for activity in day.activities %}
+        <div class="activity-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <h4>
+                    {% if activity.is_digital %}📱{% else %}✏️{% endif %}
+                    Activity {{ loop.index }}: {{ activity.title }}
+                </h4>
+                <span class="badge bg-light text-dark">{{ activity.duration }}</span>
+            </div>
+
+            <p class="mt-2" style="font-size: 1.1rem;">
+                {{ activity.description }}
+            </p>
+
+            <div class="materials-list">
+                <strong>📦 You will need:</strong>
+                <ul class="mb-0 mt-1">
+                    {% for material in activity.materials %}
+                    <li>{{ material }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            {% if activity.is_digital and activity.url_suggestions %}
+            <div class="materials-list" style="background: #e8f4fd;">
+                <strong>🌐 Where to find it:</strong>
+                <ul class="mb-0 mt-1">
+                    {% for url in activity.url_suggestions %}
+                    <li>{{ url }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if activity.data_prompt %}
+            <div class="data-prompt">
+                <strong>📊 For teacher (fill in):</strong><br>
+                {{ activity.data_prompt }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <!-- End of Day Check -->
+        <div class="card bg-light mb-4">
+            <div class="card-body text-center">
+                <h5>End of Day {{ day.day_number }} ✓</h5>
+                <p class="mb-2">How did today go?</p>
+                <div class="d-flex justify-content-center gap-4" style="font-size: 1.5rem;">
+                    <div>
+                        <div>😊</div>
+                        <small>Great!</small><br>
+                        <span style="font-size: 2rem;">□</span>
+                    </div>
+                    <div>
+                        <div>😐</div>
+                        <small>Okay</small><br>
+                        <span style="font-size: 2rem;">□</span>
+                    </div>
+                    <div>
+                        <div>😟</div>
+                        <small>Tough</small><br>
+                        <span style="font-size: 2rem;">□</span>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <p class="mb-1"><strong>Notes for teacher:</strong></p>
+                    <div class="border-bottom border-dark mb-2" style="height: 25px;"></div>
+                    <div class="border-bottom border-dark" style="height: 25px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- DATA SHEET (Optional)                          -->
+    <!-- ═══════════════════════════════════════════════ -->
+    {% if show_data_sheet %}
+    <div class="day-section">
+        <div class="card">
+            <div class="card-header bg-dark text-white text-center">
+                <h3 class="mb-0">📋 NTI Data Sheet</h3>
+                <p class="mb-0 opacity-75">Please fill in and return to school</p>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>Student:</strong> {{ packet.student.first_name }}
+                    </div>
+                    <div class="col-6">
+                        <strong>Parent Signature:</strong> _________________________
+                    </div>
+                </div>
+
+                {% for day in packet.days %}
+                <div class="border rounded p-3 mb-3">
+                    <h5 class="border-bottom pb-2">Day {{ day.day_number }}: {{ day.date }}</h5>
+                    
+                    {% for activity in day.activities %}
+                    <div class="mb-3 ps-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ activity.title }}</strong>
+                            <span>□ Did it &nbsp; □ Skipped</span>
+                        </div>
+                        {% if activity.data_prompt %}
+                        <div class="text-muted mt-1" style="font-size: 0.95rem;">
+                            {{ activity.data_prompt }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="mt-2 pt-2 border-top">
+                        <strong>Overall:</strong> □ Great! &nbsp; □ Okay &nbsp; □ Tough
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="text-center mt-4 p-3 bg-light rounded">
+                    <p class="mb-0">
+                        <strong>Thank you for filling this in!</strong><br>
+                        Please send back in {{ packet.student.first_name }}'s backpack on the first day back. 💛
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ═══════════════════════════════════════════════ -->
+    <!-- DIGITAL ACTIVITIES (if internet available)     -->
+    <!-- ═══════════════════════════════════════════════ -->
+    {% if packet.digital_suggestions %}
+    <div class="day-section">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">📱 Bonus: Online Activities</h4>
+                <small>These are optional extras if you have internet access</small>
+            </div>
+            <div class="card-body">
+                {% for suggestion in packet.digital_suggestions %}
+                <div class="mb-3 p-3 bg-light rounded">
+                    <h5>{{ suggestion.title }}</h5>
+                    <p>{{ suggestion.description }}</p>
+                    {% if suggestion.url_suggestions %}
+                    <ul class="mb-0">
+                        {% for url in suggestion.url_suggestions %}
+                        <li><code>{{ url }}</code></li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Screen-Only: Bottom Navigation -->
+    <div class="no-print mt-4 text-center">
+        <div class="btn-group">
+            {% if prev_student %}
+            <a href="{{ url_for('nti_packet_view', student_id=prev_student.id) }}" 
+               class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>{{ prev_student.first_name }}
+            </a>
+            {% endif %}
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Print This Packet
+            </button>
+            {% if next_student %}
+            <a href="{{ url_for('nti_packet_view', student_id=next_student.id) }}" 
+               class="btn btn-outline-secondary">
+                {{ next_student.first_name }}<i class="bi bi-arrow-right ms-1"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function downloadPDF() {
+        // For now, use browser's built-in print-to-PDF
+        alert('Tip: Use your browser\'s "Print" → "Save as PDF" option to create a PDF.\n\nThe layout is optimized for printing.');
+        window.print();
+    }
+</script>
+{% endblock %}

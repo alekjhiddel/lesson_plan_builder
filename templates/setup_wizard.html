@@ -1,68 +1,711 @@
 {% extends "base.html" %}
-{% block title %}Welcome - SPARK{% endblock %}
+{% block title %}SPARK — Setup Wizard{% endblock %}
+
 {% block content %}
-<div class="setup-container">
-    <div class="setup-header">
-        <h1>🌟 Welcome to SPARK!</h1>
-        <p>Special Planning for All Remarkable Kids — let's get your classroom set up. This only takes a minute.</p>
-        <p class="privacy-note">🔒 Everything you enter stays right here on your computer. Student names and data are never sent anywhere.</p>
+<div class="setup-wizard-container">
+    <!-- Progress Bar -->
+    <div class="wizard-progress">
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-steps">
+            <div class="progress-step active" data-step="1">
+                <div class="step-dot">1</div>
+                <span class="step-label">About You</span>
+            </div>
+            <div class="progress-step" data-step="2">
+                <div class="step-dot">2</div>
+                <span class="step-label">Classroom Type</span>
+            </div>
+            <div class="progress-step" data-step="3">
+                <div class="step-dot">3</div>
+                <span class="step-label">Grade Level</span>
+            </div>
+            <div class="progress-step" data-step="4">
+                <div class="step-dot">4</div>
+                <span class="step-label">Staffing</span>
+            </div>
+            <div class="progress-step" data-step="5">
+                <div class="step-dot">5</div>
+                <span class="step-label">Schedule</span>
+            </div>
+        </div>
     </div>
-    
-    <form method="POST" class="setup-form">
-        <div class="form-section">
-            <h2>About You</h2>
-            <div class="form-group">
-                <label for="teacher_name">Your Name</label>
-                <input type="text" id="teacher_name" name="teacher_name" placeholder="e.g., Mrs. Johnson" required>
-            </div>
-            <div class="form-group">
-                <label for="school_name">School Name <span class="optional">(optional)</span></label>
-                <input type="text" id="school_name" name="school_name" placeholder="e.g., Lincoln Elementary">
-            </div>
+
+    <!-- Step 1: Teacher Info -->
+    <div class="wizard-step active" id="step1">
+        <div class="step-header">
+            <h2>👋 Welcome to SPARK!</h2>
+            <p class="step-subtitle">Let's get your classroom set up. First, tell us about yourself.</p>
         </div>
-        
-        <div class="form-section">
-            <h2>Your Classroom</h2>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="class_size">How many students?</label>
-                    <input type="number" id="class_size" name="class_size" value="9" min="1" max="20">
-                </div>
-                <div class="form-group">
-                    <label for="num_aides">How many aides?</label>
-                    <input type="number" id="num_aides" name="num_aides" value="2" min="0" max="10">
-                </div>
+        <div class="step-body">
+            <div class="form-group">
+                <label for="teacherName">Your Name</label>
+                <input type="text" id="teacherName" class="form-input" placeholder="e.g., Mrs. Johnson" autocomplete="name">
+                <span class="form-hint">This is how SPARK will address you</span>
             </div>
             <div class="form-group">
-                <label>Do you have a floater aide?</label>
-                <div class="radio-group">
-                    <label class="radio-label">
-                        <input type="radio" name="has_floater" value="yes" checked> Yes
-                    </label>
-                    <label class="radio-label">
-                        <input type="radio" name="has_floater" value="no"> No
-                    </label>
+                <label for="schoolName">School Name</label>
+                <input type="text" id="schoolName" class="form-input" placeholder="e.g., Eastside Elementary">
+            </div>
+            <div class="form-group">
+                <label for="districtName">District (optional)</label>
+                <input type="text" id="districtName" class="form-input" placeholder="e.g., Fayette County Public Schools">
+            </div>
+        </div>
+        <div class="step-footer">
+            <div></div>
+            <button class="btn btn-primary btn-next" onclick="nextStep(1)">
+                Next <span class="btn-arrow">→</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 2: Classroom Type -->
+    <div class="wizard-step" id="step2">
+        <div class="step-header">
+            <h2>🏫 What type of classroom do you have?</h2>
+            <p class="step-subtitle">This helps SPARK customize features, goals, and templates for your setting.</p>
+        </div>
+        <div class="step-body">
+            <div class="classroom-type-grid">
+                <label class="type-card" data-type="msd">
+                    <input type="radio" name="programType" value="msd">
+                    <div class="type-card-inner">
+                        <div class="type-icon">🧩</div>
+                        <div class="type-info">
+                            <h3>MSD</h3>
+                            <span class="type-full-name">Moderate to Severe Disabilities</span>
+                            <p class="type-desc">Self-contained, autism/intellectual disability, life skills focus</p>
+                        </div>
+                        <div class="type-check">✓</div>
+                    </div>
+                </label>
+
+                <label class="type-card" data-type="lbd">
+                    <input type="radio" name="programType" value="lbd">
+                    <div class="type-card-inner">
+                        <div class="type-icon">📚</div>
+                        <div class="type-info">
+                            <h3>LBD</h3>
+                            <span class="type-full-name">Learning & Behavior Disorders</span>
+                            <p class="type-desc">Resource room, academic support, behavior plans</p>
+                        </div>
+                        <div class="type-check">✓</div>
+                    </div>
+                </label>
+
+                <label class="type-card" data-type="preschool">
+                    <input type="radio" name="programType" value="preschool">
+                    <div class="type-card-inner">
+                        <div class="type-icon">🎨</div>
+                        <div class="type-info">
+                            <h3>Preschool Special Education</h3>
+                            <span class="type-full-name">Ages 3–5</span>
+                            <p class="type-desc">Developmental delays, play-based learning, early intervention</p>
+                        </div>
+                        <div class="type-check">✓</div>
+                    </div>
+                </label>
+
+                <label class="type-card" data-type="resource">
+                    <input type="radio" name="programType" value="resource">
+                    <div class="type-card-inner">
+                        <div class="type-icon">📝</div>
+                        <div class="type-info">
+                            <h3>Resource Room / Pull-Out</h3>
+                            <span class="type-full-name">Small Group Support</span>
+                            <p class="type-desc">Small group academic support across grade levels</p>
+                        </div>
+                        <div class="type-check">✓</div>
+                    </div>
+                </label>
+
+                <label class="type-card" data-type="coteach">
+                    <input type="radio" name="programType" value="coteach">
+                    <div class="type-card-inner">
+                        <div class="type-icon">🤝</div>
+                        <div class="type-info">
+                            <h3>Co-Teaching / Inclusion</h3>
+                            <span class="type-full-name">Collaborative Model</span>
+                            <p class="type-desc">SPED teacher embedded in a gen ed classroom</p>
+                        </div>
+                        <div class="type-check">✓</div>
+                    </div>
+                </label>
+
+                <label class="type-card" data-type="transition">
+                    <input type="radio" name="programType" value="transition">
+                    <div class="type-card-inner">
+                        <div class="type-icon">🎓</div>
+                        <div class="type-info">
+                            <h3>Transition (14–21)</h3>
+                            <span class="type-full-name">Post-Secondary Preparation</span>
+                            <p class="type-desc">Vocational, community-based instruction, employment-focused</p>
+                        </div>
+                        <div class="type-check">✓</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="step-footer">
+            <button class="btn btn-secondary btn-prev" onclick="prevStep(2)">
+                <span class="btn-arrow">←</span> Back
+            </button>
+            <button class="btn btn-primary btn-next" onclick="nextStep(2)">
+                Next <span class="btn-arrow">→</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 3: Grade Level -->
+    <div class="wizard-step" id="step3">
+        <div class="step-header">
+            <h2>📐 What grade level(s) do you serve?</h2>
+            <p class="step-subtitle">Select all that apply. This helps with age-appropriate content.</p>
+        </div>
+        <div class="step-body">
+            <div class="grade-grid">
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="prek">
+                    <span class="chip-label">Pre-K</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="k">
+                    <span class="chip-label">Kindergarten</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="1">
+                    <span class="chip-label">1st</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="2">
+                    <span class="chip-label">2nd</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="3">
+                    <span class="chip-label">3rd</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="4">
+                    <span class="chip-label">4th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="5">
+                    <span class="chip-label">5th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="6">
+                    <span class="chip-label">6th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="7">
+                    <span class="chip-label">7th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="8">
+                    <span class="chip-label">8th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="9">
+                    <span class="chip-label">9th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="10">
+                    <span class="chip-label">10th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="11">
+                    <span class="chip-label">11th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="12">
+                    <span class="chip-label">12th</span>
+                </label>
+                <label class="grade-chip">
+                    <input type="checkbox" name="gradeLevel" value="18-21">
+                    <span class="chip-label">18–21</span>
+                </label>
+            </div>
+
+            <div class="grade-presets">
+                <span class="preset-label">Quick select:</span>
+                <button type="button" class="preset-btn" onclick="selectGradePreset('elementary')">Elementary (K-5)</button>
+                <button type="button" class="preset-btn" onclick="selectGradePreset('middle')">Middle (6-8)</button>
+                <button type="button" class="preset-btn" onclick="selectGradePreset('high')">High (9-12)</button>
+                <button type="button" class="preset-btn" onclick="selectGradePreset('transition')">Transition (18-21)</button>
+            </div>
+        </div>
+        <div class="step-footer">
+            <button class="btn btn-secondary btn-prev" onclick="prevStep(3)">
+                <span class="btn-arrow">←</span> Back
+            </button>
+            <button class="btn btn-primary btn-next" onclick="nextStep(3)">
+                Next <span class="btn-arrow">→</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 4: Staffing -->
+    <div class="wizard-step" id="step4">
+        <div class="step-header">
+            <h2>👥 Who's on your team?</h2>
+            <p class="step-subtitle">Tell us about your classroom staffing so SPARK can help with scheduling and delegation.</p>
+        </div>
+        <div class="step-body">
+            <div class="staffing-section">
+                <div class="form-group">
+                    <label for="numAides">Number of Classroom Aides / Paraprofessionals</label>
+                    <div class="number-input-group">
+                        <button type="button" class="num-btn" onclick="adjustNumber('numAides', -1)">−</button>
+                        <input type="number" id="numAides" class="form-input num-input" value="0" min="0" max="10">
+                        <button type="button" class="num-btn" onclick="adjustNumber('numAides', 1)">+</button>
+                    </div>
+                </div>
+
+                <div id="aideNamesContainer" class="aide-names-container hidden">
+                    <!-- Dynamically populated -->
+                </div>
+
+                <div class="form-group">
+                    <label>Do you have any of the following?</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="hasFloater" name="staffing" value="floater">
+                            <span class="checkbox-label">Floater / Shared Aide</span>
+                            <span class="checkbox-hint">Someone who rotates between rooms</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="hasPartnerTeacher" name="staffing" value="partner_teacher">
+                            <span class="checkbox-label">Partner Teacher / Co-Teacher</span>
+                            <span class="checkbox-hint">Another certified teacher you share duties with</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="hasNurse" name="staffing" value="nurse">
+                            <span class="checkbox-label">Dedicated Nurse / Health Aide</span>
+                            <span class="checkbox-hint">For medical needs in classroom</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="hasSLP" name="staffing" value="slp">
+                            <span class="checkbox-label">SLP Push-In</span>
+                            <span class="checkbox-hint">Speech-language pathologist provides services in your room</span>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="hasOT" name="staffing" value="ot">
+                            <span class="checkbox-label">OT Push-In</span>
+                            <span class="checkbox-hint">Occupational therapist provides services in your room</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="partnerTeacherName">Partner Teacher Name (if applicable)</label>
+                    <input type="text" id="partnerTeacherName" class="form-input" placeholder="e.g., Mr. Davis">
                 </div>
             </div>
         </div>
-        
-        <div class="form-section">
-            <h2>School Schedule</h2>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="school_start_time">School starts at</label>
-                    <input type="time" id="school_start_time" name="school_start_time" value="08:00">
+        <div class="step-footer">
+            <button class="btn btn-secondary btn-prev" onclick="prevStep(4)">
+                <span class="btn-arrow">←</span> Back
+            </button>
+            <button class="btn btn-primary btn-next" onclick="nextStep(4)">
+                Next <span class="btn-arrow">→</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 5: Schedule -->
+    <div class="wizard-step" id="step5">
+        <div class="step-header">
+            <h2>🕐 Your Daily Schedule</h2>
+            <p class="step-subtitle">Set your basic school day times. You can fine-tune your full schedule later.</p>
+        </div>
+        <div class="step-body">
+            <div class="schedule-section">
+                <div class="time-row">
+                    <div class="form-group">
+                        <label for="startTime">School Day Starts</label>
+                        <input type="time" id="startTime" class="form-input" value="08:00">
+                    </div>
+                    <div class="form-group">
+                        <label for="endTime">School Day Ends</label>
+                        <input type="time" id="endTime" class="form-input" value="15:00">
+                    </div>
                 </div>
+
+                <div class="time-row">
+                    <div class="form-group">
+                        <label for="lunchTime">Lunch Time</label>
+                        <input type="time" id="lunchTime" class="form-input" value="11:30">
+                    </div>
+                    <div class="form-group">
+                        <label for="lunchDuration">Lunch Duration (minutes)</label>
+                        <select id="lunchDuration" class="form-input">
+                            <option value="20">20 minutes</option>
+                            <option value="25">25 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="45">45 minutes</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label for="school_end_time">School ends at</label>
-                    <input type="time" id="school_end_time" name="school_end_time" value="14:35">
+                    <label for="planningPeriod">Planning Period</label>
+                    <div class="time-row">
+                        <input type="time" id="planningStart" class="form-input" value="09:00">
+                        <span class="time-separator">to</span>
+                        <input type="time" id="planningEnd" class="form-input" value="09:45">
+                    </div>
+                </div>
+
+                <div class="form-group" id="scheduleTypeGroup">
+                    <label>Schedule Structure</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="scheduleType" value="block" checked>
+                            <span class="radio-label">Block Schedule</span>
+                            <span class="radio-hint">Same schedule every day</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="scheduleType" value="rotating">
+                            <span class="radio-label">Rotating/A-B Day</span>
+                            <span class="radio-hint">Alternating schedule</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="scheduleType" value="pullout">
+                            <span class="radio-label">Pull-Out Based</span>
+                            <span class="radio-hint">Students come and go on individual schedules</span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-large">Get Started! 🚀</button>
+        <div class="step-footer">
+            <button class="btn btn-secondary btn-prev" onclick="prevStep(5)">
+                <span class="btn-arrow">←</span> Back
+            </button>
+            <button class="btn btn-primary btn-finish" onclick="finishSetup()">
+                🌟 Launch SPARK <span class="btn-arrow">→</span>
+            </button>
         </div>
-    </form>
+    </div>
+
+    <!-- Completion Screen -->
+    <div class="wizard-step" id="stepComplete">
+        <div class="step-header completion-header">
+            <div class="completion-icon">🌟</div>
+            <h2>You're all set!</h2>
+            <p class="step-subtitle" id="completionMessage">SPARK is configured and ready to help you.</p>
+        </div>
+        <div class="step-body completion-body">
+            <div class="config-summary" id="configSummary">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="completion-actions">
+                <a href="/dashboard" class="btn btn-primary btn-large">
+                    Go to Dashboard <span class="btn-arrow">→</span>
+                </a>
+                <button class="btn btn-secondary" onclick="restartSetup()">
+                    Start Over
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+// ===== WIZARD NAVIGATION =====
+let currentStep = 1;
+const totalSteps = 5;
+
+function showStep(step) {
+    document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step${step}`).classList.add('active');
+
+    // Update progress
+    document.querySelectorAll('.progress-step').forEach(el => {
+        const s = parseInt(el.dataset.step);
+        el.classList.toggle('active', s === step);
+        el.classList.toggle('completed', s < step);
+    });
+
+    const progressFill = document.getElementById('progressFill');
+    progressFill.style.width = `${((step - 1) / (totalSteps - 1)) * 100}%`;
+}
+
+function nextStep(from) {
+    if (!validateStep(from)) return;
+    currentStep = from + 1;
+    showStep(currentStep);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function prevStep(from) {
+    currentStep = from - 1;
+    showStep(currentStep);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(step) {
+    switch(step) {
+        case 1:
+            const name = document.getElementById('teacherName').value.trim();
+            const school = document.getElementById('schoolName').value.trim();
+            if (!name) { shakeField('teacherName'); return false; }
+            if (!school) { shakeField('schoolName'); return false; }
+            return true;
+        case 2:
+            const selected = document.querySelector('input[name="programType"]:checked');
+            if (!selected) {
+                showToast('Please select your classroom type');
+                return false;
+            }
+            return true;
+        case 3:
+            const grades = document.querySelectorAll('input[name="gradeLevel"]:checked');
+            if (grades.length === 0) {
+                showToast('Please select at least one grade level');
+                return false;
+            }
+            return true;
+        case 4:
+            return true; // Staffing is optional
+        case 5:
+            return true; // Schedule has defaults
+    }
+    return true;
+}
+
+function shakeField(id) {
+    const el = document.getElementById(id);
+    el.classList.add('shake');
+    el.focus();
+    setTimeout(() => el.classList.remove('shake'), 600);
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ===== CLASSROOM TYPE SELECTION =====
+document.querySelectorAll('.type-card').forEach(card => {
+    card.addEventListener('click', function() {
+        document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        this.querySelector('input[type="radio"]').checked = true;
+    });
+});
+
+// ===== GRADE PRESETS =====
+function selectGradePreset(preset) {
+    // Clear all
+    document.querySelectorAll('input[name="gradeLevel"]').forEach(cb => cb.checked = false);
+
+    const presets = {
+        elementary: ['k', '1', '2', '3', '4', '5'],
+        middle: ['6', '7', '8'],
+        high: ['9', '10', '11', '12'],
+        transition: ['18-21']
+    };
+
+    (presets[preset] || []).forEach(val => {
+        const cb = document.querySelector(`input[name="gradeLevel"][value="${val}"]`);
+        if (cb) cb.checked = true;
+    });
+
+    // Update chip visual states
+    document.querySelectorAll('.grade-chip input').forEach(cb => {
+        cb.closest('.grade-chip').classList.toggle('selected', cb.checked);
+    });
+}
+
+// Grade chip click feedback
+document.querySelectorAll('.grade-chip input').forEach(cb => {
+    cb.addEventListener('change', function() {
+        this.closest('.grade-chip').classList.toggle('selected', this.checked);
+    });
+});
+
+// ===== STAFFING: AIDE NAMES =====
+document.getElementById('numAides').addEventListener('change', updateAideFields);
+function adjustNumber(id, delta) {
+    const input = document.getElementById(id);
+    const newVal = Math.max(0, Math.min(10, parseInt(input.value) + delta));
+    input.value = newVal;
+    updateAideFields();
+}
+
+function updateAideFields() {
+    const num = parseInt(document.getElementById('numAides').value) || 0;
+    const container = document.getElementById('aideNamesContainer');
+
+    if (num === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+    }
+
+    container.classList.remove('hidden');
+    let html = '<label class="section-label">Aide Names (optional)</label>';
+    for (let i = 1; i <= num; i++) {
+        html += `
+            <div class="form-group aide-name-row">
+                <input type="text" class="form-input aide-name" placeholder="Aide ${i} name" data-aide-index="${i}">
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+}
+
+// ===== FINISH SETUP =====
+function finishSetup() {
+    const config = gatherConfig();
+    saveConfig(config);
+    showCompletionScreen(config);
+}
+
+function gatherConfig() {
+    const programType = document.querySelector('input[name="programType"]:checked')?.value || '';
+    const grades = Array.from(document.querySelectorAll('input[name="gradeLevel"]:checked')).map(cb => cb.value);
+    const aideNames = Array.from(document.querySelectorAll('.aide-name')).map(el => el.value.trim()).filter(Boolean);
+    const staffingExtras = Array.from(document.querySelectorAll('input[name="staffing"]:checked')).map(cb => cb.value);
+
+    return {
+        teacher_name: document.getElementById('teacherName').value.trim(),
+        school_name: document.getElementById('schoolName').value.trim(),
+        district_name: document.getElementById('districtName').value.trim(),
+        program_type: programType,
+        grade_levels: grades,
+        staffing: {
+            num_aides: parseInt(document.getElementById('numAides').value) || 0,
+            aide_names: aideNames,
+            has_floater: staffingExtras.includes('floater'),
+            has_partner_teacher: staffingExtras.includes('partner_teacher'),
+            partner_teacher_name: document.getElementById('partnerTeacherName').value.trim(),
+            has_nurse: staffingExtras.includes('nurse'),
+            has_slp_pushin: staffingExtras.includes('slp'),
+            has_ot_pushin: staffingExtras.includes('ot')
+        },
+        schedule: {
+            start_time: document.getElementById('startTime').value,
+            end_time: document.getElementById('endTime').value,
+            lunch_time: document.getElementById('lunchTime').value,
+            lunch_duration: parseInt(document.getElementById('lunchDuration').value),
+            planning_start: document.getElementById('planningStart').value,
+            planning_end: document.getElementById('planningEnd').value,
+            schedule_type: document.querySelector('input[name="scheduleType"]:checked')?.value || 'block'
+        },
+        setup_completed: true,
+        setup_date: new Date().toISOString(),
+        version: '2.0'
+    };
+}
+
+function saveConfig(config) {
+    // Save to localStorage for immediate use
+    localStorage.setItem('spark_config', JSON.stringify(config));
+
+    // POST to server
+    fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+    }).catch(err => console.warn('Could not save to server:', err));
+}
+
+function showCompletionScreen(config) {
+    const typeLabels = {
+        msd: '🧩 MSD — Moderate to Severe Disabilities',
+        lbd: '📚 LBD — Learning & Behavior Disorders',
+        preschool: '🎨 Preschool Special Education',
+        resource: '📝 Resource Room / Pull-Out',
+        coteach: '🤝 Co-Teaching / Inclusion',
+        transition: '🎓 Transition (14–21)'
+    };
+
+    document.getElementById('completionMessage').textContent =
+        `Welcome, ${config.teacher_name}! SPARK is configured for your ${typeLabels[config.program_type]?.split('—')[0]?.trim() || ''} classroom.`;
+
+    document.getElementById('configSummary').innerHTML = `
+        <div class="summary-card">
+            <div class="summary-item"><strong>Teacher:</strong> ${config.teacher_name}</div>
+            <div class="summary-item"><strong>School:</strong> ${config.school_name}</div>
+            <div class="summary-item"><strong>Classroom:</strong> ${typeLabels[config.program_type] || config.program_type}</div>
+            <div class="summary-item"><strong>Grades:</strong> ${config.grade_levels.join(', ')}</div>
+            <div class="summary-item"><strong>Aides:</strong> ${config.staffing.num_aides}</div>
+            <div class="summary-item"><strong>Schedule:</strong> ${config.schedule.start_time} – ${config.schedule.end_time}</div>
+        </div>
+    `;
+
+    document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
+    document.getElementById('stepComplete').classList.add('active');
+
+    // Update progress to 100%
+    document.getElementById('progressFill').style.width = '100%';
+    document.querySelectorAll('.progress-step').forEach(el => el.classList.add('completed'));
+}
+
+function restartSetup() {
+    currentStep = 1;
+    showStep(1);
+}
+
+// ===== PROGRAM TYPE FEATURES MAP =====
+// This object defines what features are prioritized per classroom type
+const PROGRAM_FEATURES = {
+    msd: {
+        primary_domains: ['life_skills', 'communication', 'self_care', 'community', 'motor'],
+        prominent_features: ['scheduling', 'aide_management', 'visual_supports', 'data_collection'],
+        schedule_template: 'block',
+        goal_categories: ['Adaptive Behavior', 'Communication', 'Social Skills', 'Motor Skills', 'Self-Care', 'Community Access'],
+        lesson_prompt_context: 'self-contained classroom with students who have moderate to severe disabilities, focusing on functional life skills, communication, and independence'
+    },
+    lbd: {
+        primary_domains: ['reading', 'math', 'writing', 'behavior', 'social_emotional'],
+        prominent_features: ['academics', 'behavior_plans', 'progress_monitoring', 'accommodations'],
+        schedule_template: 'rotating',
+        goal_categories: ['Reading', 'Math', 'Written Expression', 'Behavior', 'Social-Emotional', 'Study Skills'],
+        lesson_prompt_context: 'resource classroom serving students with learning and behavior disorders, focusing on academic remediation and behavioral supports'
+    },
+    preschool: {
+        primary_domains: ['cognitive', 'communication', 'social_emotional', 'adaptive', 'motor'],
+        prominent_features: ['developmental_tracking', 'play_based', 'parent_comm', 'transitions'],
+        schedule_template: 'block',
+        goal_categories: ['Cognitive', 'Communication', 'Social-Emotional', 'Adaptive', 'Fine Motor', 'Gross Motor'],
+        lesson_prompt_context: 'preschool special education classroom for ages 3-5, using play-based and developmentally appropriate practices'
+    },
+    resource: {
+        primary_domains: ['reading', 'math', 'writing', 'organization', 'self_advocacy'],
+        prominent_features: ['student_rotation', 'group_scheduling', 'progress_monitoring', 'gen_ed_alignment'],
+        schedule_template: 'pullout',
+        goal_categories: ['Reading', 'Math', 'Written Expression', 'Organization', 'Self-Advocacy', 'Test-Taking'],
+        lesson_prompt_context: 'resource room serving students across multiple grade levels in small pull-out groups for targeted academic intervention'
+    },
+    coteach: {
+        primary_domains: ['accommodation', 'modification', 'differentiation', 'collaboration'],
+        prominent_features: ['co_planning', 'accommodation_tracker', 'gen_ed_alignment', 'partner_comm'],
+        schedule_template: 'block',
+        goal_categories: ['Access to Gen Ed', 'Accommodations', 'Self-Advocacy', 'Organization', 'Social Skills'],
+        lesson_prompt_context: 'co-teaching inclusion setting where the SPED teacher supports students with disabilities within the general education classroom'
+    },
+    transition: {
+        primary_domains: ['vocational', 'community', 'independent_living', 'self_determination', 'employment'],
+        prominent_features: ['job_sites', 'community_outings', 'independence_tracking', 'agency_contacts'],
+        schedule_template: 'block',
+        goal_categories: ['Employment', 'Community Access', 'Independent Living', 'Self-Determination', 'Social Skills', 'Financial Literacy'],
+        lesson_prompt_context: 'transition classroom for students ages 14-21, focused on vocational training, community-based instruction, and preparation for post-secondary life'
+    }
+};
+
+// Export for use in other templates
+window.SPARK_PROGRAM_FEATURES = PROGRAM_FEATURES;
+</script>
 {% endblock %}

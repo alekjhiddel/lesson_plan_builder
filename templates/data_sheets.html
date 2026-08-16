@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% block title %}Printable Data Sheets - SPARK{% endblock %}
+
+{% block styles %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        .data-sheet { page-break-after: always; }
+        .data-sheet:last-child { page-break-after: avoid; }
+        body { font-size: 11pt; }
+        .card { border: 1px solid #000 !important; }
+        table { border-collapse: collapse; }
+        th, td { border: 1px solid #333 !important; padding: 4px 6px !important; }
+    }
+    .print-only { display: none; }
+    .data-sheet table th { background-color: #f0f0f0; }
+    .tally-cell { min-width: 60px; min-height: 40px; }
+    .trial-cell { width: 30px; height: 30px; text-align: center; }
+    .abc-row td { height: 50px; vertical-align: top; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Controls (hidden on print) -->
+    <div class="no-print">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1"><i class="fas fa-print me-2"></i>Generate Data Sheets</h2>
+                <p class="text-muted mb-0">Create printable sheets for paraprofessionals and aides</p>
+            </div>
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print Sheets
+            </button>
+        </div>
+
+        <!-- Selection Form -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form method="GET" action="/data-sheets">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Student</label>
+                            <select class="form-select" name="student_id" id="studentSelect" onchange="this.form.submit()">
+                                <option value="">-- Select Student --</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}" {% if student.id == selected_student_id %}selected{% endif %}>
+                                    {{ student.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Goals to Include</label>
+                            <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                                {% for goal in available_goals %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="goal_ids"
+                                           value="{{ goal.id }}" id="goal_{{ goal.id }}"
+                                           {% if goal.id in selected_goals %}checked{% endif %}>
+                                    <label class="form-check-label" for="goal_{{ goal.id }}">
+                                        {{ goal.short_text }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Sheet Format</label>
+                            <select class="form-select" name="format" id="sheetFormat">
+                                <option value="auto">Auto (based on goal method)</option>
+                                <option value="tally">Tally Sheet</option>
+                                <option value="trial_grid">+/- Trial Grid</option>
+                                <option value="task_analysis">Task Analysis Checklist</option>
+                                <option value="abc_log">ABC Behavior Log</option>
+                                <option value="duration_log">Duration Log</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary mt-3 w-100">
+                                <i class="fas fa-file-alt me-1"></i>Generate Sheets
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generated Data Sheets (printable) -->
+    {% if sheets %}
+    {% for sheet in sheets %}
+    <div class="data-sheet mb-4">
+        <!-- Sheet Header -->
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0">{{ student_name }}</h5>
+                        <small>Goal: {{ sheet.goal_text }}</small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <small>
+                            Week of: _______________ <br>
+                            Teacher/Aide: _______________
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Instructions -->
+                <div class="alert alert-light border mb-3 py-2">
+                    <strong>Instructions:</strong> {{ sheet.instructions }}
+                    <br><strong>Target:</strong> {{ sheet.target }}
+                </div>
+
+                {% if sheet.sheet_type == 'tally_sheet' %}
+                <!-- TALLY SHEET FORMAT -->
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Date</th>
+                            <th>Tally Marks</th>
+                            <th style="width: 10%;">Total</th>
+                            <th style="width: 15%;">Time Period</th>
+                            <th style="width: 10%;">Rate</th>
+                            <th style="width: 20%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in sheet.columns %}
+                        <tr>
+                            <td>{{ day }}</td>
+                            <td class="tally-cell"></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% elif sheet.sheet_type == 'trial_grid' %}
+                <!-- TRIAL GRID FORMAT (+/-) -->
+                <table class="table table-bordered text-center">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            {% for i in range(10) %}
+                            <th class="trial-cell">T{{ i+1 }}</th>
+                            {% endfor %}
+                            <th>+</th>
+                            <th>Total</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in sheet.columns %}
+                        <tr>
+                            <td>{{ day }}</td>
+                            {% for i in range(10) %}
+                            <td class="trial-cell"></td>
+                            {% endfor %}
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="text-muted small">Mark + for correct response, - for incorrect. Calculate % = correct ÷ total × 100</p>
+
+                {% elif sheet.sheet_type == 'task_analysis' %}
+                <!-- TASK ANALYSIS CHECKLIST -->
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">Step</th>
+                            {% for day in sheet.columns[:5] %}
+                            <th class="text-center">{{ day }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in sheet.rows %}
+                        <tr {% if row == 'Total Independent' or row == 'Percentage' %}class="table-info fw-bold"{% endif %}>
+                            <td>{{ row }}</td>
+                            {% for day in sheet.columns[:5] %}
+                            <td class="text-center"></td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="text-muted small">
+                    Key: <strong>I</strong> = Independent | <strong>V</strong> = Verbal Prompt |
+                    <strong>M</strong> = Model | <strong>P</strong> = Physical Prompt |
+                    <strong>X</strong> = Not Attempted
+                </p>
+
+                {% elif sheet.sheet_type == 'duration_log' %}
+                <!-- DURATION LOG -->
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Duration</th>
+                            <th>Activity/Context</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in sheet.columns %}
+                        <tr style="height: 40px;">
+                            <td>{{ day }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <!-- Extra row for same day -->
+                        <tr style="height: 40px;">
+                            <td>{{ day }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-info">
+                            <td colspan="3"><strong>Daily Total:</strong></td>
+                            <td></td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                {% elif sheet.sheet_type == 'interval_grid' %}
+                <!-- INTERVAL RECORDING GRID -->
+                <table class="table table-bordered text-center">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            {% for col in sheet.columns %}
+                            <th style="width: 40px;">{{ col }}</th>
+                            {% endfor %}
+                            <th>+</th>
+                            <th>Total</th>
+                            <th>%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in sheet.rows %}
+                        <tr>
+                            <td>{{ day }}</td>
+                            {% for col in sheet.columns %}
+                            <td></td>
+                            {% endfor %}
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="text-muted small">Mark + if behavior observed during interval, - if not. Interval length: _____ minutes</p>
+
+                {% else %}
+                <!-- GENERIC/PERCENTAGE LOG -->
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Correct</th>
+                            <th>Total</th>
+                            <th>Percentage</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in sheet.columns %}
+                        <tr style="height: 35px;">
+                            <td>{{ day }}</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+            </div>
+            <!-- Sheet Footer -->
+            <div class="card-footer">
+                <div class="row">
+                    <div class="col-6">
+                        <small>Generated: {{ generated_date }} | Method: {{ sheet.method }}</small>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small>SPARK IEP Progress Monitoring</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- ABC Behavior Log (bonus sheet) -->
+    {% if show_abc_log %}
+    <div class="data-sheet mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">ABC Behavior Log — {{ student_name }}</h5>
+                <small>Antecedent - Behavior - Consequence Recording</small>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-light border mb-3 py-2">
+                    <strong>Instructions:</strong> Record what happened BEFORE (Antecedent),
+                    the BEHAVIOR observed, and what happened AFTER (Consequence).
+                </div>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%;">Date/Time</th>
+                            <th style="width: 10%;">Setting</th>
+                            <th style="width: 25%;">Antecedent<br><small>(What happened before?)</small></th>
+                            <th style="width: 25%;">Behavior<br><small>(What did student do?)</small></th>
+                            <th style="width: 25%;">Consequence<br><small>(What happened after?)</small></th>
+                            <th style="width: 5%;">Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(12) %}
+                        <tr class="abc-row">
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer">
+                <small>Week of: _______________ | Observer: _______________ | SPARK IEP Progress Monitoring</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No sheets generated yet -->
+    <div class="card shadow-sm no-print">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Select a student and goals to generate data sheets</h4>
+            <p class="text-muted">Sheets will be formatted for the appropriate data collection method</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

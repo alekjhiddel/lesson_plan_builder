@@ -1,0 +1,586 @@
+{% extends "base.html" %}
+{% block title %}Parent Communications — SPARK{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3">
+                <i class="bi bi-envelope-heart me-2"></i>Parent Communications
+            </h1>
+            <p class="text-muted">
+                Generate warm, professional communications for families. 
+                All documents print locally — student names are safe here.
+            </p>
+        </div>
+    </div>
+
+    <!-- Communication Type Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Progress Letter -->
+        <div class="col-md-4 col-lg">
+            <div class="card h-100 border-primary comm-type-card" data-type="progress">
+                <div class="card-body text-center">
+                    <div class="display-6 mb-2">📊</div>
+                    <h6 class="card-title">Progress Letter</h6>
+                    <p class="card-text small text-muted">
+                        Formal IEP goal progress update
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Daily Log -->
+        <div class="col-md-4 col-lg">
+            <div class="card h-100 border-success comm-type-card" data-type="daily_log">
+                <div class="card-body text-center">
+                    <div class="display-6 mb-2">📝</div>
+                    <h6 class="card-title">Daily Log</h6>
+                    <p class="card-text small text-muted">
+                        Quick backpack communication
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Behavior Update -->
+        <div class="col-md-4 col-lg">
+            <div class="card h-100 border-warning comm-type-card" data-type="behavior">
+                <div class="card-body text-center">
+                    <div class="display-6 mb-2">⚠️</div>
+                    <h6 class="card-title">Behavior Update</h6>
+                    <p class="card-text small text-muted">
+                        Incident communication
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Celebration -->
+        <div class="col-md-4 col-lg">
+            <div class="card h-100 border-info comm-type-card" data-type="celebration">
+                <div class="card-body text-center">
+                    <div class="display-6 mb-2">🌟</div>
+                    <h6 class="card-title">Celebration!</h6>
+                    <p class="card-text small text-muted">
+                        Share a win with family
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Conference Prep -->
+        <div class="col-md-4 col-lg">
+            <div class="card h-100 border-secondary comm-type-card" data-type="conference">
+                <div class="card-body text-center">
+                    <div class="display-6 mb-2">🤝</div>
+                    <h6 class="card-title">Conference Prep</h6>
+                    <p class="card-text small text-muted">
+                        Talking points & notes
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Work Area -->
+    <div class="row">
+        <!-- Left: Form -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0" id="form-title">Select a Communication Type</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Student Selection (always visible) -->
+                    <div class="mb-3">
+                        <label for="student-select" class="form-label fw-bold">Student</label>
+                        <select class="form-select" id="student-select">
+                            <option value="">— Select Student —</option>
+                            {% for student in students %}
+                            <option value="{{ student.id }}">{{ student.first_name }} {{ student.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Progress Letter Form -->
+                    <div id="form-progress" class="comm-form d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Reporting Period</label>
+                            <input type="text" class="form-control" id="progress-period" 
+                                   placeholder="e.g., Q2 2024, January Progress Report">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tone</label>
+                            <select class="form-select" id="progress-tone">
+                                <option value="positive">Positive — Encouraging, highlights growth</option>
+                                <option value="professional">Professional — Formal, factual</option>
+                                <option value="warm">Warm — Friendly, approachable</option>
+                                <option value="concerned">Concerned — Supportive, flags issues</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Additional Notes (optional)</label>
+                            <textarea class="form-control" id="progress-notes" rows="3"
+                                      placeholder="Any specific observations to include..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Daily Log Form -->
+                    <div id="form-daily_log" class="comm-form d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" id="log-date" 
+                                   value="{{ today }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Overall Day</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="mood" id="mood-good" value="good" checked>
+                                <label class="btn btn-outline-success" for="mood-good">😊 Good Day</label>
+                                <input type="radio" class="btn-check" name="mood" id="mood-mixed" value="mixed">
+                                <label class="btn btn-outline-warning" for="mood-mixed">😐 Mixed</label>
+                                <input type="radio" class="btn-check" name="mood" id="mood-rough" value="rough">
+                                <label class="btn btn-outline-danger" for="mood-rough">😟 Tough</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Activities Today</label>
+                            <textarea class="form-control" id="log-activities" rows="3"
+                                      placeholder="Circle time, matching activity, snack practice, playground..."></textarea>
+                            <div class="form-text">One per line or comma-separated</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Behavior Notes</label>
+                            <textarea class="form-control" id="log-behavior" rows="2"
+                                      placeholder="How was behavior today?"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes for Parent</label>
+                            <textarea class="form-control" id="log-notes" rows="2"
+                                      placeholder="Anything else to share..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Supplies Needed from Home</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="need-diapers">
+                                <label class="form-check-label" for="need-diapers">Diapers/Pull-ups</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="need-wipes">
+                                <label class="form-check-label" for="need-wipes">Wipes</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="need-clothes">
+                                <label class="form-check-label" for="need-clothes">Change of clothes</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="need-snacks">
+                                <label class="form-check-label" for="need-snacks">Snacks</label>
+                            </div>
+                            <div class="input-group mt-2">
+                                <input type="text" class="form-control" id="need-other" 
+                                       placeholder="Other supplies needed...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Behavior Update Form -->
+                    <div id="form-behavior" class="comm-form d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Date & Time of Incident</label>
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <input type="date" class="form-control" id="behavior-date" value="{{ today }}">
+                                </div>
+                                <div class="col-5">
+                                    <input type="time" class="form-control" id="behavior-time">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Severity</label>
+                            <select class="form-select" id="behavior-severity">
+                                <option value="minor">Minor — FYI for parents</option>
+                                <option value="moderate" selected>Moderate — Need to discuss</option>
+                                <option value="major">Major — Meeting needed</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">What Happened (Description)</label>
+                            <textarea class="form-control" id="behavior-description" rows="3"
+                                      placeholder="Describe what occurred..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Antecedent (What happened before)</label>
+                            <input type="text" class="form-control" id="behavior-antecedent"
+                                   placeholder="What was happening right before the behavior?">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Behavior (Specific observable behavior)</label>
+                            <input type="text" class="form-control" id="behavior-behavior"
+                                   placeholder="What exactly did the student do?">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Consequence (What happened after)</label>
+                            <input type="text" class="form-control" id="behavior-consequence"
+                                   placeholder="What was the response/result?">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Actions Taken at School</label>
+                            <textarea class="form-control" id="behavior-actions" rows="3"
+                                      placeholder="What did staff do? (one action per line)"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tone</label>
+                            <select class="form-select" id="behavior-tone">
+                                <option value="concerned">Concerned — Caring but direct</option>
+                                <option value="professional">Professional — Factual</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Celebration Form -->
+                    <div id="form-celebration" class="comm-form d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Achievement Title</label>
+                            <input type="text" class="form-control" id="celebration-title"
+                                   placeholder="e.g., First time using spoon independently!">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">What Happened</label>
+                            <textarea class="form-control" id="celebration-description" rows="3"
+                                      placeholder="Describe the achievement in detail..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Related IEP Goal Area (optional)</label>
+                            <input type="text" class="form-control" id="celebration-goal"
+                                   placeholder="e.g., Self-care, Communication">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="celebration-first">
+                            <label class="form-check-label fw-bold" for="celebration-first">
+                                🎉 This is a FIRST TIME accomplishment!
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Conference Prep Form -->
+                    <div id="form-conference" class="comm-form d-none">
+                        <div class="mb-3">
+                            <label class="form-label">Conference Type</label>
+                            <select class="form-select" id="conference-type">
+                                <option value="progress">Progress Update</option>
+                                <option value="annual_review">Annual Review</option>
+                                <option value="concern">Concern Discussion</option>
+                                <option value="initial">Initial Meeting</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Additional Topics to Discuss</label>
+                            <textarea class="form-control" id="conference-topics" rows="3"
+                                      placeholder="One topic per line..."></textarea>
+                        </div>
+                        <div class="alert alert-info small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Conference prep notes are for <strong>teacher use only</strong> — they won't be sent home.
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <div class="d-grid mt-4">
+                        <button class="btn btn-primary btn-lg" id="btn-generate" disabled>
+                            <i class="bi bi-magic me-2"></i>Generate Communication
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Preview -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Preview</h5>
+                    <div class="btn-group" id="preview-actions" style="display: none;">
+                        <button class="btn btn-sm btn-outline-primary" onclick="printPreview()">
+                            <i class="bi bi-printer me-1"></i>Print
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="saveCommunication()">
+                            <i class="bi bi-check-circle me-1"></i>Save as Sent
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard()">
+                            <i class="bi bi-clipboard me-1"></i>Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="preview-placeholder" class="text-center text-muted py-5">
+                        <div class="display-1 mb-3">📨</div>
+                        <p>Select a communication type and student, then click Generate to preview.</p>
+                    </div>
+                    <div id="preview-content" class="d-none">
+                        <pre id="preview-text" class="border rounded p-3 bg-light" 
+                             style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 0.85rem; max-height: 600px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Communication History -->
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Recent Communications
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Student</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comm-history">
+                                {% for comm in recent_communications %}
+                                <tr>
+                                    <td>{{ comm.date }}</td>
+                                    <td>{{ comm.student_name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ comm.badge_class }}">
+                                            {{ comm.type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if comm.sent %}
+                                        <span class="text-success"><i class="bi bi-check-circle"></i> Sent</span>
+                                        {% else %}
+                                        <span class="text-muted"><i class="bi bi-pencil"></i> Draft</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if not recent_communications %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">
+                                        No communications yet today
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let selectedType = null;
+    let currentPreview = null;
+
+    // Card click handlers
+    document.querySelectorAll('.comm-type-card').forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove active from all
+            document.querySelectorAll('.comm-type-card').forEach(c => {
+                c.classList.remove('border-3', 'shadow');
+            });
+            // Activate this one
+            this.classList.add('border-3', 'shadow');
+            
+            selectedType = this.dataset.type;
+            
+            // Show corresponding form
+            document.querySelectorAll('.comm-form').forEach(f => f.classList.add('d-none'));
+            const form = document.getElementById(`form-${selectedType}`);
+            if (form) form.classList.remove('d-none');
+            
+            // Update form title
+            const titles = {
+                'progress': 'Progress Letter',
+                'daily_log': 'Daily Communication Log',
+                'behavior': 'Behavior Update',
+                'celebration': 'Celebration Note',
+                'conference': 'Conference Prep'
+            };
+            document.getElementById('form-title').textContent = titles[selectedType] || 'Communication';
+            
+            updateGenerateButton();
+        });
+        
+        // Make cards keyboard accessible
+        card.setAttribute('tabindex', '0');
+        card.style.cursor = 'pointer';
+        card.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') this.click();
+        });
+    });
+
+    // Student selection change
+    document.getElementById('student-select').addEventListener('change', updateGenerateButton);
+
+    function updateGenerateButton() {
+        const studentSelected = document.getElementById('student-select').value;
+        const btn = document.getElementById('btn-generate');
+        btn.disabled = !(selectedType && studentSelected);
+    }
+
+    // Generate button
+    document.getElementById('btn-generate').addEventListener('click', function() {
+        const studentId = document.getElementById('student-select').value;
+        if (!studentId || !selectedType) return;
+        
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+        
+        const data = collectFormData();
+        
+        fetch('/api/communications/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                type: selectedType,
+                student_id: studentId,
+                ...data
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showPreview(result.communication);
+                currentPreview = result.communication;
+            } else {
+                alert('Error generating communication: ' + (result.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.innerHTML = '<i class="bi bi-magic me-2"></i>Generate Communication';
+        });
+    });
+
+    function collectFormData() {
+        const data = {};
+        
+        switch(selectedType) {
+            case 'progress':
+                data.period = document.getElementById('progress-period').value;
+                data.tone = document.getElementById('progress-tone').value;
+                data.notes = document.getElementById('progress-notes').value;
+                break;
+            case 'daily_log':
+                data.date = document.getElementById('log-date').value;
+                data.mood = document.querySelector('input[name="mood"]:checked')?.value || 'good';
+                data.activities = document.getElementById('log-activities').value;
+                data.behavior = document.getElementById('log-behavior').value;
+                data.notes = document.getElementById('log-notes').value;
+                data.needs_supplies = getSuppliesNeeded();
+                break;
+            case 'behavior':
+                data.date = document.getElementById('behavior-date').value;
+                data.time = document.getElementById('behavior-time').value;
+                data.severity = document.getElementById('behavior-severity').value;
+                data.description = document.getElementById('behavior-description').value;
+                data.antecedent = document.getElementById('behavior-antecedent').value;
+                data.behavior_text = document.getElementById('behavior-behavior').value;
+                data.consequence = document.getElementById('behavior-consequence').value;
+                data.actions = document.getElementById('behavior-actions').value;
+                data.tone = document.getElementById('behavior-tone').value;
+                break;
+            case 'celebration':
+                data.title = document.getElementById('celebration-title').value;
+                data.description = document.getElementById('celebration-description').value;
+                data.goal_area = document.getElementById('celebration-goal').value;
+                data.first_time = document.getElementById('celebration-first').checked;
+                break;
+            case 'conference':
+                data.conference_type = document.getElementById('conference-type').value;
+                data.topics = document.getElementById('conference-topics').value;
+                break;
+        }
+        
+        return data;
+    }
+
+    function getSuppliesNeeded() {
+        const supplies = [];
+        if (document.getElementById('need-diapers').checked) supplies.push('Diapers/Pull-ups');
+        if (document.getElementById('need-wipes').checked) supplies.push('Wipes');
+        if (document.getElementById('need-clothes').checked) supplies.push('Change of clothes');
+        if (document.getElementById('need-snacks').checked) supplies.push('Snacks');
+        const other = document.getElementById('need-other').value;
+        if (other) supplies.push(other);
+        return supplies;
+    }
+
+    function showPreview(communication) {
+        document.getElementById('preview-placeholder').classList.add('d-none');
+        document.getElementById('preview-content').classList.remove('d-none');
+        document.getElementById('preview-actions').style.display = '';
+        document.getElementById('preview-text').textContent = communication.body;
+    }
+
+    function printPreview() {
+        if (!currentPreview) return;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html><head><title>${currentPreview.subject}</title>
+            <style>
+                body { font-family: 'Courier New', monospace; font-size: 12px; 
+                       padding: 20px; white-space: pre-wrap; }
+                @media print { body { margin: 0.5in; } }
+            </style></head>
+            <body>${currentPreview.body}</body></html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    function saveCommunication() {
+        if (!currentPreview) return;
+        fetch('/api/communications/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                communication: currentPreview,
+                sent: true
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Add to history table
+                const tbody = document.getElementById('comm-history');
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date().toLocaleDateString()}</td>
+                    <td>${currentPreview.student_name}</td>
+                    <td><span class="badge bg-primary">${currentPreview.type}</span></td>
+                    <td><span class="text-success"><i class="bi bi-check-circle"></i> Sent</span></td>
+                `;
+                tbody.insertBefore(row, tbody.firstChild);
+                
+                alert('✓ Communication saved as sent!');
+            }
+        });
+    }
+
+    function copyToClipboard() {
+        if (!currentPreview) return;
+        navigator.clipboard.writeText(currentPreview.body).then(() => {
+            alert('Copied to clipboard!');
+        });
+    }
+</script>
+{% endblock %}

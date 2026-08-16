@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block title %}Progress Reports - SPARK{% endblock %}
+
+{% block styles %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        .print-break { page-break-before: always; }
+        body { font-size: 11pt; }
+    }
+    .trend-progressing { color: #198754; }
+    .trend-maintaining { color: #ffc107; }
+    .trend-regressing { color: #dc3545; }
+    .goal-section { border-left: 4px solid #0d6efd; }
+    .goal-section.mastered { border-left-color: #198754; }
+    .goal-section.regressing { border-left-color: #dc3545; }
+    .narrative-box { background: #f8f9fa; border-radius: 8px; }
+    .prompt-output { white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header (no-print) -->
+    <div class="no-print">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1"><i class="fas fa-chart-line me-2"></i>Progress Reports</h2>
+                <p class="text-muted mb-0">Kentucky IEP Quarterly Progress Reporting</p>
+            </div>
+            <div>
+                <button class="btn btn-outline-primary me-2" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i>Print
+                </button>
+                <button class="btn btn-primary" onclick="generateAllNarratives()">
+                    <i class="fas fa-magic me-1"></i>Generate Narratives
+                </button>
+            </div>
+        </div>
+
+        <!-- Selection Controls -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form method="GET" action="/progress-reports" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Student</label>
+                        <select class="form-select" name="student_id" onchange="this.form.submit()">
+                            <option value="">-- Select Student --</option>
+                            {% for student in students %}
+                            <option value="{{ student.id }}" {% if student.id == selected_student_id %}selected{% endif %}>
+                                {{ student.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Reporting Period</label>
+                        <select class="form-select" name="period" onchange="this.form.submit()">
+                            {% for period in available_periods %}
+                            <option value="{{ period.period }}" {% if period.period == selected_period %}selected{% endif %}>
+                                {{ period.name }} ({{ period.start }} — {{ period.end }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">School Year</label>
+                        <select class="form-select" name="school_year">
+                            <option value="2025-2026" selected>2025-2026</option>
+                            <option value="2024-2025">2024-2025</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-sync me-1"></i>Load
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if report %}
+    <!-- PRINTABLE REPORT -->
+    <div class="report-content">
+        <!-- Report Header -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3 class="mb-1">IEP Progress Report</h3>
+                        <h5 class="text-primary">{{ report.student_info.name }}</h5>
+                        <table class="table table-sm table-borderless" style="max-width: 400px;">
+                            <tr><td class="fw-bold">Grade:</td><td>{{ report.student_info.grade }}</td></tr>
+                            <tr><td class="fw-bold">Teacher:</td><td>{{ report.student_info.teacher }}</td></tr>
+                            <tr><td class="fw-bold">Case Manager:</td><td>{{ report.student_info.case_manager }}</td></tr>
+                            <tr><td class="fw-bold">School:</td><td>{{ report.student_info.school }}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="border rounded p-3">
+                            <h6>{{ report.period_name }}</h6>
+                            <p class="mb-1">{{ report.date_range.start }} — {{ report.date_range.end }}</p>
+                            <small class="text-muted">Generated: {{ report.generated_date }}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Bar -->
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <h4 class="mb-0">{{ report.summary.total_goals }}</h4>
+                            <small class="text-muted">Total Goals</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <h4 class="mb-0 text-success">{{ report.summary.progressing }}</h4>
+                            <small class="text-muted">Progressing</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <h4 class="mb-0 text-primary">{{ report.summary.on_track }}</h4>
+                            <small class="text-muted">On Track</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2 text-center">
+                            <h4 class="mb-0">{{ report.summary.total_data_points }}</h4>
+                            <small class="text-muted">Data Points</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Goal Reports -->
+        {% for goal in report.goals %}
+        <div class="card shadow-sm mb-3 goal-section {% if goal.mastery_status.mastered %}mastered{% elif goal.trend == 'regressing' %}regressing{% endif %}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">
+                        {{ goal.goal_area }}
+                        {% if goal.mastery_status.mastered %}
+                        <span class="badge bg-success ms-2">🎉 MASTERED</span>
+                        {% endif %}
+                    </h6>
+                </div>
+                <span class="badge {% if goal.trend == 'progressing' %}bg-success{% elif goal.trend == 'regressing' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                    {{ goal.trend_label }}
+                </span>
+            </div>
+            <div class="card-body">
+                <!-- Goal Text -->
+                <p class="mb-3"><strong>Goal:</strong> {{ goal.goal_text }}</p>
+
+                <!-- Data Summary Table -->
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <table class="table table-sm table-bordered">
+                            <tr>
+                                <th>Baseline</th>
+                                <th>Current Level</th>
+                                <th>Target</th>
+                                <th>On Track</th>
+                                <th>Data Points</th>
+                            </tr>
+                            <tr>
+                                <td>{{ goal.baseline }}{% if goal.method == 'percentage' %}%{% endif %}</td>
+                                <td class="fw-bold trend-{{ goal.trend }}">
+                                    {{ goal.current_level }}{% if goal.method == 'percentage' %}%{% endif %}
+                                </td>
+                                <td>{{ goal.target }}{% if goal.method == 'percentage' %}%{% endif %}</td>
+                                <td>
+                                    {% if goal.on_track_for_annual %}
+                                    <span class="text-success fw-bold">✓ Yes</span>
+                                    {% elif goal.on_track_for_annual == false %}
+                                    <span class="text-danger fw-bold">✗ No</span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ goal.data_points_this_period }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- Mini progress bar -->
+                        <div class="p-2 border rounded">
+                            <small class="text-muted">Progress toward target:</small>
+                            {% set progress_pct = ((goal.current_level - goal.baseline) / (goal.target - goal.baseline) * 100) if goal.target != goal.baseline and goal.current_level != 'N/A' else 0 %}
+                            <div class="progress mt-1" style="height: 20px;">
+                                <div class="progress-bar {% if goal.trend == 'progressing' %}bg-success{% elif goal.trend == 'regressing' %}bg-danger{% else %}bg-warning{% endif %}"
+                                     style="width: {{ [progress_pct, 100]|min }}%">
+                                    {{ progress_pct|round(0) }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Narrative Section -->
+                <div class="narrative-box p-3 mb-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-pen me-1"></i>Progress Narrative:
+                    </label>
+                    <div class="narrative-text" id="narrative_{{ goal.goal_id }}">
+                        {% if goal.narrative %}
+                        {{ goal.narrative }}
+                        {% else %}
+                        <em class="text-muted">[Click "Generate Narratives" above or type manually]</em>
+                        {% endif %}
+                    </div>
+                    <textarea class="form-control mt-2 no-print" rows="3"
+                              id="narrativeInput_{{ goal.goal_id }}"
+                              placeholder="Type narrative here or generate with AI..."
+                              style="display: none;">{{ goal.narrative or '' }}</textarea>
+                    <button class="btn btn-sm btn-outline-secondary mt-1 no-print"
+                            onclick="toggleNarrativeEdit('{{ goal.goal_id }}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+
+                <!-- Mastery Note -->
+                {% if goal.mastery_status.mastered %}
+                <div class="alert alert-success py-2">
+                    <i class="fas fa-star me-1"></i>
+                    <strong>Goal Mastered!</strong> Student met criteria for
+                    {{ goal.mastery_status.consecutive_sessions }} consecutive sessions.
+                    Consider: advance to next goal, increase criteria, or begin generalization.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Kentucky Compliance Footer -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h6><i class="fas fa-check-circle text-success me-2"></i>Kentucky Compliance</h6>
+                <ul class="mb-0">
+                    <li>✓ Report concurrent with {{ report.period_name }} report card</li>
+                    <li>✓ All IEP goals addressed ({{ report.summary.total_goals }} goals)</li>
+                    <li>✓ Parent notification included</li>
+                    <li>✓ Progress toward annual goals documented</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Signatures (print) -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <p>Teacher Signature: ___________________________</p>
+                        <p>Date Sent to Parent: _______________</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p>Parent Signature: ___________________________</p>
+                        <p>Date Returned: _______________</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ChatGPT Prompt Section (no-print) -->
+    <div class="no-print">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-robot me-2"></i>AI Narrative Generation</h6>
+                <button class="btn btn-sm btn-outline-primary" onclick="togglePrompt()">
+                    Show/Hide Prompt
+                </button>
+            </div>
+            <div class="card-body" id="promptSection" style="display: none;">
+                <p class="text-muted">Copy this prompt into ChatGPT to generate professional narratives:</p>
+                <div class="prompt-output bg-dark text-light p-3 rounded" id="chatgptPrompt">
+                    {{ chatgpt_prompt | e }}
+                </div>
+                <button class="btn btn-sm btn-primary mt-2" onclick="copyPrompt()">
+                    <i class="fas fa-copy me-1"></i>Copy to Clipboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No report loaded -->
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Select a student and reporting period</h4>
+            <p class="text-muted">Progress reports are generated quarterly, concurrent with report cards (KY requirement)</p>
+            <div class="mt-3">
+                <span class="badge bg-light text-dark border me-2">Q1: Aug–Oct</span>
+                <span class="badge bg-light text-dark border me-2">Q2: Oct–Dec</span>
+                <span class="badge bg-light text-dark border me-2">Q3: Jan–Mar</span>
+                <span class="badge bg-light text-dark border">Q4: Mar–May</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePrompt() {
+    const section = document.getElementById('promptSection');
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+}
+
+function copyPrompt() {
+    const prompt = document.getElementById('chatgptPrompt').textContent;
+    navigator.clipboard.writeText(prompt).then(() => {
+        alert('Prompt copied to clipboard! Paste into ChatGPT.');
+    });
+}
+
+function toggleNarrativeEdit(goalId) {
+    const textarea = document.getElementById(`narrativeInput_${goalId}`);
+    const display = document.getElementById(`narrative_${goalId}`);
+    if (textarea.style.display === 'none') {
+        textarea.style.display = 'block';
+        textarea.focus();
+    } else {
+        textarea.style.display = 'none';
+        // Update display text
+        if (textarea.value.trim()) {
+            display.innerHTML = textarea.value;
+        }
+    }
+}
+
+function generateAllNarratives() {
+    // In API mode, this would call the backend to generate narratives
+    // For now, show the prompt for manual ChatGPT use
+    const section = document.getElementById('promptSection');
+    section.style.display = 'block';
+    section.scrollIntoView({behavior: 'smooth'});
+
+    {% if api_mode %}
+    // Auto-generate via API
+    fetch('/api/generate-narratives', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            student_id: '{{ selected_student_id }}',
+            period: '{{ selected_period }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.narratives) {
+            Object.entries(data.narratives).forEach(([goalId, narrative]) => {
+                document.getElementById(`narrative_${goalId}`).innerHTML = narrative;
+                document.getElementById(`narrativeInput_${goalId}`).value = narrative;
+            });
+        }
+    });
+    {% endif %}
+}
+</script>
+{% endblock %}

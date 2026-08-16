@@ -4,102 +4,200 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SPARK{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_head %}{% endblock %}
 </head>
-<body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <nav class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">🌟</div>
-                <h2>SPARK</h2>
+<body class="spark-app {% block body_class %}{% endblock %}">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="spark-logo">
+                <span class="logo-icon">🌟</span>
+                <span class="logo-text">SPARK</span>
             </div>
-            <ul class="nav-links">
-                <li class="{{ 'active' if request.endpoint == 'dashboard' }}">
-                    <a href="{{ url_for('dashboard') }}">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+                <span class="toggle-bar"></span>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="/dashboard" class="nav-link {% block nav_dashboard %}{% endblock %}">
                         <span class="nav-icon">🏠</span>
-                        <span>Dashboard</span>
+                        <span class="nav-label">Dashboard</span>
                     </a>
                 </li>
-                <li class="{{ 'active' if request.endpoint in ['students_list', 'student_add', 'student_edit'] }}">
-                    <a href="{{ url_for('students_list') }}">
-                        <span class="nav-icon">👧</span>
-                        <span>My Students</span>
-                    </a>
-                </li>
-                <li class="{{ 'active' if request.endpoint == 'generate' }}">
-                    <a href="{{ url_for('generate') }}">
-                        <span class="nav-icon">✨</span>
-                        <span>Generate Plans</span>
-                    </a>
-                </li>
-                <li class="{{ 'active' if request.endpoint in ['schedule', 'schedule_setup'] }}">
-                    <a href="{{ url_for('schedule') }}">
-                        <span class="nav-icon">📅</span>
-                        <span>Schedule</span>
-                    </a>
-                </li>
-                <li class="{{ 'active' if request.endpoint in ['partner', 'partner_export', 'partner_import'] }}">
-                    <a href="{{ url_for('partner') }}">
-                        <span class="nav-icon">🤝</span>
-                        <span>Partner Room</span>
-                    </a>
-                </li>
-                <li class="{{ 'active' if request.endpoint == 'process_response' }}">
-                    <a href="{{ url_for('process_response') }}">
+                <li class="nav-item">
+                    <a href="/ieps" class="nav-link {% block nav_ieps %}{% endblock %}">
                         <span class="nav-icon">📋</span>
-                        <span>Process Response</span>
+                        <span class="nav-label">IEPs & Compliance</span>
                     </a>
                 </li>
-                <li class="{{ 'active' if request.endpoint == 'knowledge_base' }}">
-                    <a href="{{ url_for('knowledge_base') }}">
-                        <span class="nav-icon">📚</span>
-                        <span>Resources</span>
+                <li class="nav-item">
+                    <a href="/lessons" class="nav-link {% block nav_lessons %}{% endblock %}">
+                        <span class="nav-icon">📅</span>
+                        <span class="nav-label">Lesson Plans</span>
                     </a>
                 </li>
-                <li class="{{ 'active' if request.endpoint == 'history' }}">
-                    <a href="{{ url_for('history') }}">
-                        <span class="nav-icon">📁</span>
-                        <span>Plan History</span>
+                <li class="nav-item">
+                    <a href="/schedule" class="nav-link {% block nav_schedule %}{% endblock %}">
+                        <span class="nav-icon">🗓️</span>
+                        <span class="nav-label">Scheduling</span>
                     </a>
                 </li>
-                <li class="{{ 'active' if request.endpoint in ['help_index', 'help_topic'] }}">
-                    <a href="{{ url_for('help_index') }}">
-                        <span class="nav-icon">❓</span>
-                        <span>Help</span>
+                <li class="nav-item">
+                    <a href="/data" class="nav-link {% block nav_data %}{% endblock %}">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-label">Data & Progress</span>
                     </a>
                 </li>
-                <li class="{{ 'active' if request.endpoint == 'settings' }}">
-                    <a href="{{ url_for('settings') }}">
-                        <span class="nav-icon">⚙️</span>
-                        <span>Settings</span>
+                <li class="nav-item">
+                    <a href="/communications" class="nav-link {% block nav_comms %}{% endblock %}">
+                        <span class="nav-icon">✉️</span>
+                        <span class="nav-label">Communications</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/nti" class="nav-link {% block nav_nti %}{% endblock %}">
+                        <span class="nav-icon">🏠</span>
+                        <span class="nav-label">NTI</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/students" class="nav-link {% block nav_students %}{% endblock %}">
+                        <span class="nav-icon">👧</span>
+                        <span class="nav-label">My Students</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/partner" class="nav-link {% block nav_partner %}{% endblock %}">
+                        <span class="nav-icon">🤝</span>
+                        <span class="nav-label">Partner Room</span>
                     </a>
                 </li>
             </ul>
-            <div class="sidebar-footer">
-                <p class="privacy-badge">🔒 All data stays on this computer</p>
-            </div>
         </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
-                            {{ message }}
-                            <button class="alert-close" onclick="this.parentElement.remove()">×</button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-            
+        <div class="sidebar-footer">
+            <ul class="nav-list nav-list-secondary">
+                <li class="nav-item">
+                    <a href="/help" class="nav-link {% block nav_help %}{% endblock %}">
+                        <span class="nav-icon">❓</span>
+                        <span class="nav-label">Help</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/settings" class="nav-link {% block nav_settings %}{% endblock %}">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-label">Settings</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-user" id="sidebarUser">
+                <div class="user-avatar" id="userAvatar">T</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName">Teacher</span>
+                    <span class="user-school" id="userSchool">School</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">☰</button>
+                <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+            </div>
+            <div class="top-bar-right">
+                <div class="program-badge" id="programBadge"></div>
+                {% block top_bar_actions %}{% endblock %}
+            </div>
+        </header>
+
+        <div class="content-area">
             {% block content %}{% endblock %}
-        </main>
-    </div>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    {% block extra_js %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+    // ===== SIDEBAR TOGGLE =====
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+        });
+    }
+
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('mobile-open');
+        });
+    }
+
+    // Restore sidebar state
+    if (localStorage.getItem('sidebar_collapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+        document.body.classList.add('sidebar-collapsed');
+    }
+
+    // ===== LOAD CONFIG & UPDATE UI =====
+    function loadConfig() {
+        const config = JSON.parse(localStorage.getItem('spark_config') || '{}');
+        if (config.teacher_name) {
+            const userNameEl = document.getElementById('userName');
+            const userSchoolEl = document.getElementById('userSchool');
+            const userAvatarEl = document.getElementById('userAvatar');
+            if (userNameEl) userNameEl.textContent = config.teacher_name;
+            if (userSchoolEl) userSchoolEl.textContent = config.school_name || '';
+            if (userAvatarEl) userAvatarEl.textContent = config.teacher_name.charAt(0).toUpperCase();
+        }
+
+        // Program badge
+        const badgeEl = document.getElementById('programBadge');
+        if (badgeEl && config.program_type) {
+            const badges = {
+                msd: { label: 'MSD', color: '#6366f1' },
+                lbd: { label: 'LBD', color: '#f59e0b' },
+                preschool: { label: 'Pre-K', color: '#10b981' },
+                resource: { label: 'Resource', color: '#3b82f6' },
+                coteach: { label: 'Co-Teach', color: '#8b5cf6' },
+                transition: { label: 'Transition', color: '#ef4444' }
+            };
+            const badge = badges[config.program_type];
+            if (badge) {
+                badgeEl.textContent = badge.label;
+                badgeEl.style.backgroundColor = badge.color;
+                badgeEl.style.display = 'inline-block';
+            }
+        }
+
+        return config;
+    }
+
+    const sparkConfig = loadConfig();
+
+    // ===== ACTIVE NAV HIGHLIGHTING =====
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+        }
+    });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>

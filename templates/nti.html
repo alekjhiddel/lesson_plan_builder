@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+{% block title %}NTI Packet Generator — SPARK{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h1 class="h3">
+                        <i class="bi bi-snow2 me-2"></i>NTI Packet Generator
+                    </h1>
+                    <p class="text-muted">
+                        Non-Traditional Instruction packets for snow days. 
+                        Individualized activities based on each student's IEP goals, ability level, and home resources.
+                    </p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-info fs-6">
+                        <i class="bi bi-people me-1"></i>{{ students|length }} Students
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Row -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-gear me-2"></i>NTI Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Number of Days -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Number of Days</label>
+                            <select class="form-select" id="num-days">
+                                <option value="1">1 Day</option>
+                                <option value="2">2 Days</option>
+                                <option value="3">3 Days</option>
+                                <option value="4">4 Days</option>
+                                <option value="5">5 Days</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Start Date -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" id="nti-date" 
+                                   value="{{ tomorrow }}">
+                        </div>
+                        
+                        <!-- Activities Per Day -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Activities/Day</label>
+                            <select class="form-select" id="activities-per-day">
+                                <option value="3">3 (Minimum)</option>
+                                <option value="4" selected>4 (Standard)</option>
+                                <option value="5">5 (Maximum)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Include Data Sheet -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Options</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-data-sheet" checked>
+                                <label class="form-check-label" for="include-data-sheet">
+                                    Include data sheet
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-digital" checked>
+                                <label class="form-check-label" for="include-digital">
+                                    Digital activities (if internet)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <button class="btn btn-primary btn-lg w-100 mb-3" id="btn-generate-all" onclick="generateAllPackets()">
+                        <i class="bi bi-snow2 me-2"></i>Generate All Packets
+                    </button>
+                    <button class="btn btn-outline-secondary w-100" onclick="generateSelected()">
+                        <i class="bi bi-check2-square me-2"></i>Generate Selected Only
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Select Students</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="selectAll()">Select All</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="selectNone()">Clear All</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        {% for student in students %}
+                        <div class="col-md-4 col-lg-3">
+                            <div class="form-check border rounded p-2 student-select-card">
+                                <input class="form-check-input student-checkbox" type="checkbox" 
+                                       value="{{ student.id }}" id="student-{{ student.id }}" checked>
+                                <label class="form-check-label w-100" for="student-{{ student.id }}">
+                                    <strong>{{ student.first_name }} {{ student.last_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ student.disability_category|upper }} · 
+                                        {% if student.home_resources.internet %}
+                                            <i class="bi bi-wifi text-success"></i>
+                                        {% else %}
+                                            <i class="bi bi-wifi-off text-muted"></i>
+                                        {% endif %}
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generation Progress (hidden until generating) -->
+    <div class="row mb-4 d-none" id="progress-section">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" id="progress-spinner"></div>
+                        <span id="progress-text">Generating packets...</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" id="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section (hidden until generated) -->
+    <div class="row d-none" id="results-section">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        Generated Packets
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="printAllPackets()">
+                            <i class="bi bi-printer me-1"></i>Print All
+                        </button>
+                        <button class="btn btn-outline-success" onclick="recordCompliance()">
+                            <i class="bi bi-shield-check me-1"></i>Record as Sent (FAPE)
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Category</th>
+                                    <th>Days</th>
+                                    <th>Activities</th>
+                                    <th>Internet</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-tbody">
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compliance Log -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-shield-check me-2"></i>NTI Compliance Log (FAPE Documentation)
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>NTI Date</th>
+                                    <th>Packets Sent</th>
+                                    <th>Returned</th>
+                                    <th>Missing</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in compliance_logs %}
+                                <tr>
+                                    <td>{{ log.date }}</td>
+                                    <td>{{ log.sent_count }}</td>
+                                    <td>{{ log.returned_count }}</td>
+                                    <td>
+                                        {% if log.missing %}
+                                        <span class="text-warning">{{ log.missing|join(', ') }}</span>
+                                        {% else %}
+                                        <span class="text-success">All returned</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.all_returned %}
+                                        <span class="badge bg-success">Complete</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if not compliance_logs %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">
+                                        No NTI events recorded this year
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let generatedPackets = [];
+
+    function selectAll() {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+    }
+
+    function selectNone() {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+    }
+
+    function getSelectedStudents() {
+        const selected = [];
+        document.querySelectorAll('.student-checkbox:checked').forEach(cb => {
+            selected.push(cb.value);
+        });
+        return selected;
+    }
+
+    function generateAllPackets() {
+        selectAll();
+        generateSelected();
+    }
+
+    function generateSelected() {
+        const studentIds = getSelectedStudents();
+        if (studentIds.length === 0) {
+            alert('Please select at least one student.');
+            return;
+        }
+
+        const numDays = parseInt(document.getElementById('num-days').value);
+        const ntiDate = document.getElementById('nti-date').value;
+        const includeDataSheet = document.getElementById('include-data-sheet').checked;
+        const includeDigital = document.getElementById('include-digital').checked;
+
+        // Show progress
+        document.getElementById('progress-section').classList.remove('d-none');
+        document.getElementById('results-section').classList.add('d-none');
+        document.getElementById('btn-generate-all').disabled = true;
+
+        fetch('/api/nti/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                student_ids: studentIds,
+                num_days: numDays,
+                nti_date: ntiDate,
+                include_data_sheet: includeDataSheet,
+                include_digital: includeDigital
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                generatedPackets = result.packets;
+                showResults(result);
+            } else {
+                alert('Error: ' + (result.error || 'Failed to generate packets'));
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        })
+        .finally(() => {
+            document.getElementById('progress-section').classList.add('d-none');
+            document.getElementById('btn-generate-all').disabled = false;
+        });
+
+        // Simulate progress
+        simulateProgress(studentIds.length);
+    }
+
+    function simulateProgress(count) {
+        let progress = 0;
+        const increment = 100 / count;
+        const bar = document.getElementById('progress-bar');
+        const text = document.getElementById('progress-text');
+        
+        const interval = setInterval(() => {
+            progress += increment * 0.3;
+            if (progress >= 95) {
+                clearInterval(interval);
+            }
+            bar.style.width = Math.min(progress, 95) + '%';
+            text.textContent = `Generating packets... ${Math.floor(progress)}%`;
+        }, 200);
+    }
+
+    function showResults(result) {
+        document.getElementById('results-section').classList.remove('d-none');
+        document.getElementById('progress-bar').style.width = '100%';
+        
+        const tbody = document.getElementById('results-tbody');
+        tbody.innerHTML = '';
+        
+        result.packets.forEach((packet, index) => {
+            const student = packet.student;
+            const totalActivities = packet.days.reduce((sum, day) => sum + day.activities.length, 0);
+            const hasInternet = packet.digital_suggestions ? '✓' : '—';
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${student.first_name}</strong> <small class="text-muted">${student.name.split(' ').pop()}</small></td>
+                <td><span class="badge bg-${getCategoryColor(student.category)}">${student.category.toUpperCase()}</span></td>
+                <td>${packet.num_days} day${packet.num_days > 1 ? 's' : ''}</td>
+                <td>${totalActivities} activities</td>
+                <td>${hasInternet}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="previewPacket(${index})" title="Preview">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="printPacket(${index})" title="Print">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Summary
+        const summaryRow = document.createElement('tr');
+        summaryRow.className = 'table-light fw-bold';
+        summaryRow.innerHTML = `
+            <td colspan="3">Total: ${result.summary.packets_generated} packets</td>
+            <td colspan="3">
+                ${result.summary.errors > 0 ? 
+                    `<span class="text-danger">${result.summary.errors} error(s)</span>` : 
+                    '<span class="text-success">All generated successfully ✓</span>'}
+            </td>
+        `;
+        tbody.appendChild(summaryRow);
+    }
+
+    function getCategoryColor(category) {
+        const colors = { 'msd': 'primary', 'lbd': 'warning', 'preschool': 'success' };
+        return colors[category] || 'secondary';
+    }
+
+    function previewPacket(index) {
+        const packet = generatedPackets[index];
+        if (!packet) return;
+        
+        // Navigate to packet view
+        window.open(`/nti/packet/${packet.student.id}?preview=true`, '_blank');
+    }
+
+    function printPacket(index) {
+        const packet = generatedPackets[index];
+        if (!packet) return;
+        
+        fetch(`/api/nti/packet/${packet.student.id}/print`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ packet: packet })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <html><head><title>NTI Packet - ${packet.student.first_name}</title>
+                    <style>
+                        body { font-family: 'Arial', sans-serif; font-size: 14px; 
+                               padding: 20px; line-height: 1.6; }
+                        .page-break { page-break-after: always; }
+                        h2 { border-bottom: 2px solid #333; padding-bottom: 5px; }
+                        .activity { border: 1px solid #ccc; border-radius: 8px; 
+                                    padding: 15px; margin: 15px 0; }
+                        .activity h3 { margin-top: 0; color: #2c5282; }
+                        @media print { body { margin: 0.5in; } }
+                    </style></head>
+                    <body>${result.print_html}</body></html>
+                `);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        });
+    }
+
+    function printAllPackets() {
+        if (generatedPackets.length === 0) return;
+        
+        fetch('/api/nti/print-all', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ packets: generatedPackets })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(result.print_html);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        });
+    }
+
+    function recordCompliance() {
+        if (generatedPackets.length === 0) return;
+        
+        if (!confirm(`Record ${generatedPackets.length} NTI packets as sent? This creates FAPE documentation.`)) {
+            return;
+        }
+        
+        fetch('/api/nti/record-compliance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                packets: generatedPackets.map(p => ({
+                    student_id: p.student.id,
+                    student_name: p.student.name,
+                    num_days: p.num_days,
+                    nti_date: p.start_date
+                })),
+                method: 'printed'
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert(`✓ ${result.count} packets recorded as sent.\nFAPE documentation updated.`);
+                // Reload to show updated compliance log
+                location.reload();
+            }
+        });
+    }
+</script>
+{% endblock %}

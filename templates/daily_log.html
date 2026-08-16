@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}Quick Daily Log — SPARK{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-journal-text me-2"></i>Quick Daily Log
+                </h1>
+                <p class="text-muted mb-0">Fast daily communication — goes in the backpack folder</p>
+            </div>
+            <div>
+                <span class="badge bg-secondary fs-6">
+                    {{ today_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Entry for All Students -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Today's Logs</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="printAllLogs()">
+                            <i class="bi bi-printer me-1"></i>Print All
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="saveAllLogs()">
+                            <i class="bi bi-check-all me-1"></i>Save All
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Student Log Cards -->
+                    {% for student in students %}
+                    <div class="border-bottom p-3 student-log-entry" data-student-id="{{ student.id }}">
+                        <div class="row align-items-center">
+                            <!-- Student Name -->
+                            <div class="col-md-2">
+                                <h6 class="mb-0 fw-bold">{{ student.first_name }}</h6>
+                                <small class="text-muted">{{ student.last_name }}</small>
+                            </div>
+                            
+                            <!-- Mood Quick Select -->
+                            <div class="col-md-2">
+                                <div class="btn-group btn-group-sm w-100" role="group">
+                                    <input type="radio" class="btn-check" 
+                                           name="mood-{{ student.id }}" 
+                                           id="mood-good-{{ student.id }}" 
+                                           value="good">
+                                    <label class="btn btn-outline-success" for="mood-good-{{ student.id }}" 
+                                           title="Good day">😊</label>
+                                    
+                                    <input type="radio" class="btn-check" 
+                                           name="mood-{{ student.id }}" 
+                                           id="mood-mixed-{{ student.id }}" 
+                                           value="mixed">
+                                    <label class="btn btn-outline-warning" for="mood-mixed-{{ student.id }}" 
+                                           title="Mixed day">😐</label>
+                                    
+                                    <input type="radio" class="btn-check" 
+                                           name="mood-{{ student.id }}" 
+                                           id="mood-rough-{{ student.id }}" 
+                                           value="rough">
+                                    <label class="btn btn-outline-danger" for="mood-rough-{{ student.id }}" 
+                                           title="Rough day">😟</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Quick Notes -->
+                            <div class="col-md-4">
+                                <input type="text" class="form-control form-control-sm" 
+                                       id="notes-{{ student.id }}"
+                                       placeholder="Quick notes for parent...">
+                            </div>
+                            
+                            <!-- Activities (compact) -->
+                            <div class="col-md-2">
+                                <input type="text" class="form-control form-control-sm"
+                                       id="activities-{{ student.id }}"
+                                       placeholder="Key activities...">
+                            </div>
+                            
+                            <!-- Supplies Needed -->
+                            <div class="col-md-2">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" 
+                                            type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-box-seam"></i> Needs
+                                    </button>
+                                    <div class="dropdown-menu p-2" style="min-width: 200px;">
+                                        <div class="form-check">
+                                            <input class="form-check-input supply-check" type="checkbox" 
+                                                   data-student="{{ student.id }}" value="Diapers/Pull-ups"
+                                                   id="supply-diaper-{{ student.id }}">
+                                            <label class="form-check-label" for="supply-diaper-{{ student.id }}">
+                                                Diapers/Pull-ups
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input supply-check" type="checkbox"
+                                                   data-student="{{ student.id }}" value="Wipes"
+                                                   id="supply-wipes-{{ student.id }}">
+                                            <label class="form-check-label" for="supply-wipes-{{ student.id }}">
+                                                Wipes
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input supply-check" type="checkbox"
+                                                   data-student="{{ student.id }}" value="Change of clothes"
+                                                   id="supply-clothes-{{ student.id }}">
+                                            <label class="form-check-label" for="supply-clothes-{{ student.id }}">
+                                                Change of clothes
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input supply-check" type="checkbox"
+                                                   data-student="{{ student.id }}" value="Snacks"
+                                                   id="supply-snacks-{{ student.id }}">
+                                            <label class="form-check-label" for="supply-snacks-{{ student.id }}">
+                                                Snacks
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input supply-check" type="checkbox"
+                                                   data-student="{{ student.id }}" value="Backpack items"
+                                                   id="supply-backpack-{{ student.id }}">
+                                            <label class="form-check-label" for="supply-backpack-{{ student.id }}">
+                                                Backpack items
+                                            </label>
+                                        </div>
+                                        <hr class="my-1">
+                                        <input type="text" class="form-control form-control-sm"
+                                               id="supply-other-{{ student.id }}"
+                                               placeholder="Other...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expanded detail (toggleable) -->
+                        <div class="collapse mt-2" id="detail-{{ student.id }}">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <textarea class="form-control form-control-sm" rows="2"
+                                              id="behavior-{{ student.id }}"
+                                              placeholder="Behavior details..."></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <textarea class="form-control form-control-sm" rows="2"
+                                              id="extended-notes-{{ student.id }}"
+                                              placeholder="Extended notes for parent..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Toggle detail link -->
+                        <div class="mt-1">
+                            <a class="text-muted small" data-bs-toggle="collapse" 
+                               href="#detail-{{ student.id }}" role="button">
+                                <i class="bi bi-chevron-down"></i> More details
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Preview Modal -->
+    <div class="modal fade" id="printModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Print Preview — Daily Logs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="print-preview-content">
+                    <!-- Generated print content goes here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="doPrint()">
+                        <i class="bi bi-printer me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function collectStudentLog(studentId) {
+        const moodRadio = document.querySelector(`input[name="mood-${studentId}"]:checked`);
+        const mood = moodRadio ? moodRadio.value : null;
+        const notes = document.getElementById(`notes-${studentId}`)?.value || '';
+        const activities = document.getElementById(`activities-${studentId}`)?.value || '';
+        const behavior = document.getElementById(`behavior-${studentId}`)?.value || '';
+        const extendedNotes = document.getElementById(`extended-notes-${studentId}`)?.value || '';
+        
+        // Collect supplies
+        const supplies = [];
+        document.querySelectorAll(`.supply-check[data-student="${studentId}"]:checked`).forEach(cb => {
+            supplies.push(cb.value);
+        });
+        const otherSupply = document.getElementById(`supply-other-${studentId}`)?.value;
+        if (otherSupply) supplies.push(otherSupply);
+        
+        return {
+            student_id: studentId,
+            mood: mood,
+            notes: notes + (extendedNotes ? '\n' + extendedNotes : ''),
+            activities: activities,
+            behavior: behavior,
+            needs_supplies: supplies
+        };
+    }
+
+    function printAllLogs() {
+        const logs = [];
+        document.querySelectorAll('.student-log-entry').forEach(entry => {
+            const studentId = entry.dataset.studentId;
+            const log = collectStudentLog(studentId);
+            if (log.mood) {  // Only include students with a mood selected
+                logs.push(log);
+            }
+        });
+        
+        if (logs.length === 0) {
+            alert('Please select a mood (😊😐😟) for at least one student before printing.');
+            return;
+        }
+        
+        // Generate print-ready logs
+        fetch('/api/communications/daily-logs/print', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ logs: logs, date: '{{ today }}' })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showPrintPreview(result.print_content);
+            }
+        });
+    }
+
+    function showPrintPreview(content) {
+        document.getElementById('print-preview-content').innerHTML = 
+            `<pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 11px;">${content}</pre>`;
+        new bootstrap.Modal(document.getElementById('printModal')).show();
+    }
+
+    function doPrint() {
+        const content = document.getElementById('print-preview-content').innerHTML;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html><head><title>Daily Logs</title>
+            <style>
+                body { font-family: 'Courier New', monospace; font-size: 11px; padding: 10px; }
+                .log-entry { page-break-after: always; }
+                .log-entry:last-child { page-break-after: auto; }
+                @media print { body { margin: 0.3in; } }
+            </style></head>
+            <body>${content}</body></html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    function saveAllLogs() {
+        const logs = [];
+        document.querySelectorAll('.student-log-entry').forEach(entry => {
+            const studentId = entry.dataset.studentId;
+            const log = collectStudentLog(studentId);
+            if (log.mood) {
+                logs.push(log);
+            }
+        });
+        
+        if (logs.length === 0) {
+            alert('Please fill in at least one student log before saving.');
+            return;
+        }
+        
+        fetch('/api/communications/daily-logs/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ logs: logs, date: '{{ today }}' })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert(`✓ Saved ${result.count} daily logs!`);
+            }
+        });
+    }
+
+    // Auto-save reminder
+    let hasUnsaved = false;
+    document.querySelectorAll('input, textarea').forEach(el => {
+        el.addEventListener('change', () => { hasUnsaved = true; });
+    });
+    
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsaved) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved daily logs. Are you sure you want to leave?';
+        }
+    });
+</script>
+{% endblock %}

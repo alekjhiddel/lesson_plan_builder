@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% block title %}Progress Graphs - SPARK{% endblock %}
+
+{% block styles %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        .chart-container { page-break-inside: avoid; }
+        canvas { max-height: 300px !important; }
+    }
+    .chart-container {
+        position: relative;
+        height: 320px;
+        margin-bottom: 1rem;
+    }
+    .legend-custom {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .legend-swatch {
+        width: 16px;
+        height: 4px;
+        border-radius: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-chart-area me-2"></i>Progress Graphs</h2>
+            <p class="text-muted mb-0">Visual progress monitoring for IEP goals</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print me-1"></i>Print All
+            </button>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card shadow-sm mb-4 no-print">
+        <div class="card-body">
+            <form method="GET" action="/progress-graphs" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Student</label>
+                    <select class="form-select" name="student_id" onchange="this.form.submit()">
+                        <option value="">-- Select Student --</option>
+                        {% for student in students %}
+                        <option value="{{ student.id }}" {% if student.id == selected_student_id %}selected{% endif %}>
+                            {{ student.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Date Range</label>
+                    <select class="form-select" name="range" onchange="this.form.submit()">
+                        <option value="30" {% if date_range == '30' %}selected{% endif %}>Last 30 days</option>
+                        <option value="60" {% if date_range == '60' %}selected{% endif %}>Last 60 days</option>
+                        <option value="90" {% if date_range == '90' %}selected{% endif %}>Last 90 days (Quarter)</option>
+                        <option value="180" {% if date_range == '180' %}selected{% endif %}>Last 6 months</option>
+                        <option value="all" {% if date_range == 'all' %}selected{% endif %}>All time</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Chart Type</label>
+                    <select class="form-select" name="chart_type" id="chartTypeSelect" onchange="updateChartTypes()">
+                        <option value="line">Line Chart</option>
+                        <option value="bar">Bar Chart</option>
+                        <option value="scatter">Scatter Plot</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if goals_data %}
+    <!-- Student Header (printable) -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <strong>{{ student_name }}</strong>
+                    <span class="text-muted ms-2">Progress Monitoring Graphs</span>
+                </div>
+                <small class="text-muted">Generated: {{ today }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- One Chart Per Goal -->
+    {% for goal in goals_data %}
+    <div class="card shadow-sm mb-4 chart-container-wrapper">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0">{{ goal.area }}: {{ goal.short_text }}</h6>
+                <small class="text-muted">
+                    Method: {{ goal.method_label }} |
+                    Baseline: {{ goal.baseline }}{{ goal.unit }} |
+                    Target: {{ goal.target }}{{ goal.unit }}
+                </small>
+            </div>
+            <div>
+                {% if goal.trend == 'progressing' %}
+                <span class="badge bg-success">📈 Progressing</span>
+                {% elif goal.trend == 'regressing' %}
+                <span class="badge bg-danger">📉 Regressing</span>
+                {% else %}
+                <span class="badge bg-warning text-dark">➡️ Maintaining</span>
+                {% endif %}
+                {% if goal.mastered %}
+                <span class="badge bg-success">🎉 Mastered</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Chart Canvas -->
+            <div class="chart-container">
+                <canvas id="chart_{{ goal.id }}"></canvas>
+            </div>
+
+            <!-- Custom Legend -->
+            <div class="legend-custom">
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #0d6efd;"></div>
+                    <span>Data Points</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #dc3545; height: 2px;"></div>
+                    <span>Baseline ({{ goal.baseline }}{{ goal.unit }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #198754; height: 2px;"></div>
+                    <span>Goal/Aim ({{ goal.target }}{{ goal.unit }})</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #6c757d; height: 2px;"></div>
+                    <span>Trend Line</span>
+                </div>
+            </div>
+
+            <!-- Data Summary -->
+            <div class="row mt-3">
+                <div class="col-md-2 text-center">
+                    <small class="text-muted d-block">Sessions</small>
+                    <strong>{{ goal.data_points|length }}</strong>
+                </div>
+                <div class="col-md-2 text-center">
+                    <small class="text-muted d-block">Current</small>
+                    <strong>{{ goal.current_level }}{{ goal.unit }}</strong>
+                </div>
+                <div class="col-md-2 text-center">
+                    <small class="text-muted d-block">Highest</small>
+                    <strong>{{ goal.highest }}{{ goal.unit }}</strong>
+                </div>
+                <div class="col-md-2 text-center">
+                    <small class="text-muted d-block">Lowest</small>
+                    <strong>{{ goal.lowest }}{{ goal.unit }}</strong>
+                </div>
+                <div class="col-md-2 text-center">
+                    <small class="text-muted d-block">Average</small>
+                    <strong>{{ goal.average }}{{ goal.unit }}</strong>
+                </div>
+                <div class="col-md-2 text-center">
+                    <small class="text-muted d-block">Change</small>
+                    <strong class="{% if goal.change > 0 %}text-success{% elif goal.change < 0 %}text-danger{% endif %}">
+                        {% if goal.change > 0 %}+{% endif %}{{ goal.change }}{{ goal.unit }}
+                    </strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- SVG Fallback (for offline/no-internet) -->
+    <noscript>
+        {% for goal in goals_data %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h6>{{ goal.area }}: {{ goal.short_text }}</h6>
+            </div>
+            <div class="card-body">
+                <svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-height:200px;">
+                    <!-- Grid lines -->
+                    <line x1="50" y1="20" x2="50" y2="180" stroke="#ddd" stroke-width="1"/>
+                    <line x1="50" y1="180" x2="580" y2="180" stroke="#ddd" stroke-width="1"/>
+                    <!-- Baseline -->
+                    <line x1="50" y1="{{ 180 - (goal.baseline / 100 * 160) }}" x2="580" y2="{{ 180 - (goal.baseline / 100 * 160) }}"
+                          stroke="#dc3545" stroke-width="1" stroke-dasharray="5,5"/>
+                    <!-- Goal line -->
+                    <line x1="50" y1="{{ 180 - (goal.target / 100 * 160) }}" x2="580" y2="{{ 180 - (goal.target / 100 * 160) }}"
+                          stroke="#198754" stroke-width="1" stroke-dasharray="5,5"/>
+                    <!-- Data points connected -->
+                    {% if goal.data_points %}
+                    <polyline fill="none" stroke="#0d6efd" stroke-width="2"
+                              points="{% for dp in goal.data_points %}{{ 50 + loop.index0 * (530 / (goal.data_points|length - 1 or 1)) }},{{ 180 - (dp.value / 100 * 160) }} {% endfor %}"/>
+                    {% for dp in goal.data_points %}
+                    <circle cx="{{ 50 + loop.index0 * (530 / (goal.data_points|length - 1 or 1)) }}"
+                            cy="{{ 180 - (dp.value / 100 * 160) }}"
+                            r="4" fill="#0d6efd"/>
+                    {% endfor %}
+                    {% endif %}
+                    <!-- Labels -->
+                    <text x="25" y="185" font-size="10" fill="#666">0%</text>
+                    <text x="17" y="25" font-size="10" fill="#666">100%</text>
+                    <text x="300" y="198" font-size="10" fill="#666" text-anchor="middle">Sessions</text>
+                </svg>
+                <p class="text-center text-muted small">
+                    Baseline: {{ goal.baseline }}{{ goal.unit }} | Current: {{ goal.current_level }}{{ goal.unit }} | Target: {{ goal.target }}{{ goal.unit }}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    </noscript>
+
+    {% else %}
+    <!-- No data -->
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Select a student to view progress graphs</h4>
+            <p class="text-muted">Charts show performance over time with baseline and goal lines</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+<script>
+{% if goals_data %}
+// Chart data passed from server
+const goalsChartData = {{ goals_chart_json | safe }};
+
+// Create charts for each goal
+goalsChartData.forEach(goal => {
+    const ctx = document.getElementById(`chart_${goal.id}`);
+    if (!ctx) return;
+
+    // Calculate trend line
+    const n = goal.data_points.length;
+    let trendStart = null, trendEnd = null;
+    if (n >= 2) {
+        const xMean = (n - 1) / 2;
+        const yMean = goal.values.reduce((a, b) => a + b, 0) / n;
+        let num = 0, den = 0;
+        for (let i = 0; i < n; i++) {
+            num += (i - xMean) * (goal.values[i] - yMean);
+            den += (i - xMean) * (i - xMean);
+        }
+        const slope = den !== 0 ? num / den : 0;
+        const intercept = yMean - slope * xMean;
+        trendStart = intercept;
+        trendEnd = slope * (n - 1) + intercept;
+    }
+
+    const chartType = document.getElementById('chartTypeSelect')?.value || 'line';
+
+    new Chart(ctx, {
+        type: chartType === 'scatter' ? 'scatter' : chartType,
+        data: {
+            labels: goal.dates,
+            datasets: [
+                {
+                    label: 'Performance',
+                    data: goal.values,
+                    borderColor: '#0d6efd',
+                    backgroundColor: chartType === 'bar' ? 'rgba(13, 110, 253, 0.5)' : 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    fill: chartType === 'line',
+                    tension: 0.1
+                },
+                // Trend line
+                ...(trendStart !== null ? [{
+                    label: 'Trend',
+                    data: goal.values.map((_, i) => {
+                        const slope = (trendEnd - trendStart) / (n - 1 || 1);
+                        return Math.round((trendStart + slope * i) * 10) / 10;
+                    }),
+                    borderColor: '#6c757d',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false
+                }] : [])
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        afterBody: function(context) {
+                            const idx = context[0].dataIndex;
+                            const note = goal.notes ? goal.notes[idx] : '';
+                            return note ? `Note: ${note}` : '';
+                        }
+                    }
+                },
+                annotation: {
+                    annotations: {
+                        baselineLine: {
+                            type: 'line',
+                            yMin: goal.baseline,
+                            yMax: goal.baseline,
+                            borderColor: '#dc3545',
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            label: {
+                                display: true,
+                                content: `Baseline: ${goal.baseline}${goal.unit}`,
+                                position: 'start',
+                                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                                font: { size: 10 }
+                            }
+                        },
+                        goalLine: {
+                            type: 'line',
+                            yMin: goal.target,
+                            yMax: goal.target,
+                            borderColor: '#198754',
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            label: {
+                                display: true,
+                                content: `Goal: ${goal.target}${goal.unit}`,
+                                position: 'end',
+                                backgroundColor: 'rgba(25, 135, 84, 0.8)',
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: goal.method === 'percentage',
+                    max: goal.method === 'percentage' ? 100 : undefined,
+                    title: {
+                        display: true,
+                        text: goal.y_label || 'Performance'
+                    },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    },
+                    grid: { display: false },
+                    ticks: {
+                        maxRotation: 45,
+                        maxTicksLimit: 15
+                    }
+                }
+            }
+        }
+    });
+});
+
+function updateChartTypes() {
+    // Reload page with new chart type (or re-render dynamically)
+    location.reload();
+}
+{% endif %}
+</script>
+{% endblock %}

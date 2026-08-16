@@ -1,0 +1,497 @@
+{% extends "base.html" %}
+{% block title %}Data Entry - SPARK{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-clipboard-list me-2"></i>Quick Data Entry</h2>
+            <p class="text-muted mb-0">Record daily progress data for IEP goals</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-primary fs-6" id="todayDate">{{ today }}</span>
+        </div>
+    </div>
+
+    <!-- Mastery Alerts -->
+    {% if mastery_alerts %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-trophy me-2"></i>
+        <strong>Mastery Alert!</strong>
+        {% for alert in mastery_alerts %}
+        <div class="mt-1">{{ alert.message }}</div>
+        {% endfor %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Student Selection -->
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-users me-2"></i>Students</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="studentList">
+                        {% for student in students %}
+                        <a href="#" class="list-group-item list-group-item-action student-select {% if student.id == selected_student_id %}active{% endif %}"
+                           data-student-id="{{ student.id }}"
+                           onclick="selectStudent('{{ student.id }}')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>{{ student.name }}</span>
+                                <!-- Weekly collection indicator -->
+                                <span class="badge {% if student.weekly_pct >= 80 %}bg-success{% elif student.weekly_pct >= 50 %}bg-warning{% else %}bg-danger{% endif %} rounded-pill"
+                                      title="{{ student.weekly_pct }}% collected this week">
+                                    {{ student.weekly_entries }}/{{ student.weekly_expected }}
+                                </span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Selection -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-calendar me-1"></i>Date
+                    </label>
+                    <input type="date" class="form-control" id="dataDate"
+                           value="{{ today }}" max="{{ today }}">
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="setToday()">Today</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="setYesterday()">Yesterday</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Entry Forms -->
+        <div class="col-md-9">
+            {% if selected_student %}
+            <div id="goalForms">
+                {% for goal in goals %}
+                <div class="card shadow-sm mb-3 goal-card" data-goal-id="{{ goal.id }}" id="goalCard_{{ goal.id }}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-0">{{ goal.area }}: {{ goal.short_text }}</h6>
+                            <small class="text-muted">Method: {{ goal.method_label }} | Target: {{ goal.target }}</small>
+                        </div>
+                        <div>
+                            <!-- Weekly progress bar -->
+                            <div class="progress" style="width: 100px; height: 8px;" title="{{ goal.weekly_status }}">
+                                <div class="progress-bar {% if goal.weekly_pct >= 80 %}bg-success{% elif goal.weekly_pct >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                                     style="width: {{ goal.weekly_pct }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ goal.weekly_collected }}/5 this week</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <form class="data-entry-form" data-goal-id="{{ goal.id }}" data-method="{{ goal.method }}">
+                            {% if goal.method == 'trial_by_trial' %}
+                            <!-- Trial by Trial: +/- checkboxes -->
+                            <div class="mb-3">
+                                <label class="form-label">Trials (click to toggle +/-)</label>
+                                <div class="trial-grid" id="trials_{{ goal.id }}">
+                                    {% for i in range(10) %}
+                                    <button type="button" class="btn btn-outline-secondary trial-btn me-1 mb-1"
+                                            data-trial="{{ i }}" onclick="toggleTrial(this)">
+                                        {{ i + 1 }}
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-success" id="correct_{{ goal.id }}">Correct: 0</span>
+                                    <span class="badge bg-danger" id="incorrect_{{ goal.id }}">Incorrect: 0</span>
+                                    <span class="badge bg-info" id="pct_{{ goal.id }}">0%</span>
+                                </div>
+                                <input type="hidden" name="value" id="trialValue_{{ goal.id }}">
+                            </div>
+
+                            {% elif goal.method == 'percentage' %}
+                            <!-- Percentage: number fields -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Correct</label>
+                                    <input type="number" class="form-control" id="correct_{{ goal.id }}"
+                                           min="0" onchange="calcPercentage('{{ goal.id }}')">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Total Opportunities</label>
+                                    <input type="number" class="form-control" id="total_{{ goal.id }}"
+                                           min="1" onchange="calcPercentage('{{ goal.id }}')">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Percentage</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control fw-bold" id="pctValue_{{ goal.id }}"
+                                               name="value" min="0" max="100" step="0.1">
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% elif goal.method == 'frequency_count' %}
+                            <!-- Frequency Count: tally counter -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Count</label>
+                                    <div class="input-group">
+                                        <button type="button" class="btn btn-outline-danger"
+                                                onclick="adjustCount('{{ goal.id }}', -1)">-</button>
+                                        <input type="number" class="form-control text-center fw-bold fs-4"
+                                               id="count_{{ goal.id }}" name="value" value="0" min="0">
+                                        <button type="button" class="btn btn-outline-success"
+                                                onclick="adjustCount('{{ goal.id }}', 1)">+</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Observation Period (min)</label>
+                                    <input type="number" class="form-control" id="period_{{ goal.id }}"
+                                           value="60" min="1">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Quick Tally</label>
+                                    <button type="button" class="btn btn-lg btn-primary w-100"
+                                            onclick="adjustCount('{{ goal.id }}', 1)"
+                                            style="height: 58px;">
+                                        <i class="fas fa-plus"></i> TAP
+                                    </button>
+                                </div>
+                            </div>
+
+                            {% elif goal.method == 'duration' %}
+                            <!-- Duration: timer -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Duration</label>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fs-3 fw-bold me-3" id="timer_{{ goal.id }}">00:00</span>
+                                        <button type="button" class="btn btn-success me-1"
+                                                onclick="startTimer('{{ goal.id }}')">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger me-1"
+                                                onclick="stopTimer('{{ goal.id }}')">
+                                            <i class="fas fa-stop"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-secondary"
+                                                onclick="resetTimer('{{ goal.id }}')">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" name="value" id="duration_{{ goal.id }}" value="0">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Or enter manually (seconds)</label>
+                                    <input type="number" class="form-control" id="manualDuration_{{ goal.id }}"
+                                           min="0" placeholder="Enter seconds"
+                                           onchange="setManualDuration('{{ goal.id }}')">
+                                </div>
+                            </div>
+
+                            {% elif goal.method == 'task_analysis_steps' %}
+                            <!-- Task Analysis: step checklist -->
+                            <div class="mb-3">
+                                <label class="form-label">Steps (check independently completed)</label>
+                                <div class="list-group" id="steps_{{ goal.id }}">
+                                    {% for step in goal.steps %}
+                                    <label class="list-group-item d-flex align-items-center">
+                                        <input type="checkbox" class="form-check-input me-2 step-check"
+                                               data-goal="{{ goal.id }}" onchange="updateStepCount('{{ goal.id }}')">
+                                        <span>{{ step }}</span>
+                                        <select class="form-select form-select-sm ms-auto" style="width: 80px;">
+                                            <option value="I">I</option>
+                                            <option value="V">V</option>
+                                            <option value="M">M</option>
+                                            <option value="P">P</option>
+                                        </select>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-info" id="stepCount_{{ goal.id }}">
+                                        0/{{ goal.steps|length }} independent
+                                    </span>
+                                </div>
+                                <input type="hidden" name="value" id="stepValue_{{ goal.id }}">
+                            </div>
+
+                            {% elif goal.method == 'interval_recording' %}
+                            <!-- Interval Recording: interval grid -->
+                            <div class="mb-3">
+                                <label class="form-label">Intervals (click to mark behavior observed)</label>
+                                <div class="interval-grid" id="intervals_{{ goal.id }}">
+                                    {% for i in range(15) %}
+                                    <button type="button" class="btn btn-outline-secondary interval-btn me-1 mb-1"
+                                            data-interval="{{ i }}" onclick="toggleInterval(this, '{{ goal.id }}')">
+                                        {{ i + 1 }}
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-info" id="intervalCount_{{ goal.id }}">0/15 intervals</span>
+                                </div>
+                                <input type="hidden" name="value" id="intervalValue_{{ goal.id }}">
+                            </div>
+                            {% endif %}
+
+                            <!-- Notes (all methods) -->
+                            <div class="mb-3">
+                                <label class="form-label">Notes (optional)</label>
+                                <input type="text" class="form-control" name="notes" id="notes_{{ goal.id }}"
+                                       placeholder="Observations, prompts used, behavior notes...">
+                            </div>
+
+                            <!-- Save button -->
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Save
+                                </button>
+                                <button type="button" class="btn btn-outline-success" onclick="saveAndNext('{{ goal.id }}')">
+                                    Save & Next <i class="fas fa-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Success indicator (hidden by default) -->
+                    <div class="card-footer bg-success text-white d-none" id="saved_{{ goal.id }}">
+                        <i class="fas fa-check me-1"></i> Data saved successfully!
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <!-- No student selected -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-arrow-left fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">Select a student to begin data entry</h4>
+                    <p class="text-muted">Choose from the student list on the left</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Timer state
+const timers = {};
+
+function selectStudent(studentId) {
+    window.location.href = `/data-entry?student_id=${studentId}&date=${document.getElementById('dataDate').value}`;
+}
+
+function setToday() {
+    document.getElementById('dataDate').value = '{{ today }}';
+}
+
+function setYesterday() {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    document.getElementById('dataDate').value = yesterday.toISOString().split('T')[0];
+}
+
+// Trial by Trial
+function toggleTrial(btn) {
+    if (btn.classList.contains('btn-success')) {
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-secondary');
+        btn.dataset.value = '';
+    } else if (btn.classList.contains('btn-danger')) {
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-outline-secondary');
+        btn.dataset.value = '';
+    } else {
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-success');
+        btn.dataset.value = '+';
+    }
+    // Right-click for incorrect
+    btn.oncontextmenu = function(e) {
+        e.preventDefault();
+        btn.classList.remove('btn-success', 'btn-outline-secondary');
+        btn.classList.add('btn-danger');
+        btn.dataset.value = '-';
+        updateTrialCounts(btn.closest('.trial-grid').id.replace('trials_', ''));
+    };
+    updateTrialCounts(btn.closest('.trial-grid').id.replace('trials_', ''));
+}
+
+function updateTrialCounts(goalId) {
+    const grid = document.getElementById(`trials_${goalId}`);
+    const btns = grid.querySelectorAll('.trial-btn');
+    let correct = 0, incorrect = 0, value = '';
+    btns.forEach(btn => {
+        if (btn.dataset.value === '+') { correct++; value += '+'; }
+        else if (btn.dataset.value === '-') { incorrect++; value += '-'; }
+    });
+    const total = correct + incorrect;
+    const pct = total > 0 ? Math.round(correct / total * 100) : 0;
+    document.getElementById(`correct_${goalId}`).textContent = `Correct: ${correct}`;
+    document.getElementById(`incorrect_${goalId}`).textContent = `Incorrect: ${incorrect}`;
+    document.getElementById(`pct_${goalId}`).textContent = `${pct}%`;
+    document.getElementById(`trialValue_${goalId}`).value = value;
+}
+
+// Percentage
+function calcPercentage(goalId) {
+    const correct = parseInt(document.getElementById(`correct_${goalId}`).value) || 0;
+    const total = parseInt(document.getElementById(`total_${goalId}`).value) || 1;
+    const pct = Math.round(correct / total * 100 * 10) / 10;
+    document.getElementById(`pctValue_${goalId}`).value = pct;
+}
+
+// Frequency Count
+function adjustCount(goalId, delta) {
+    const input = document.getElementById(`count_${goalId}`);
+    const newVal = Math.max(0, parseInt(input.value || 0) + delta);
+    input.value = newVal;
+}
+
+// Duration Timer
+function startTimer(goalId) {
+    if (timers[goalId]) return;
+    const startTime = Date.now() - (parseInt(document.getElementById(`duration_${goalId}`).value) * 1000 || 0);
+    timers[goalId] = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(`duration_${goalId}`).value = elapsed;
+        const min = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const sec = (elapsed % 60).toString().padStart(2, '0');
+        document.getElementById(`timer_${goalId}`).textContent = `${min}:${sec}`;
+    }, 1000);
+}
+
+function stopTimer(goalId) {
+    if (timers[goalId]) {
+        clearInterval(timers[goalId]);
+        timers[goalId] = null;
+    }
+}
+
+function resetTimer(goalId) {
+    stopTimer(goalId);
+    document.getElementById(`duration_${goalId}`).value = 0;
+    document.getElementById(`timer_${goalId}`).textContent = '00:00';
+}
+
+function setManualDuration(goalId) {
+    const seconds = parseInt(document.getElementById(`manualDuration_${goalId}`).value) || 0;
+    document.getElementById(`duration_${goalId}`).value = seconds;
+    const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const sec = (seconds % 60).toString().padStart(2, '0');
+    document.getElementById(`timer_${goalId}`).textContent = `${min}:${sec}`;
+}
+
+// Task Analysis Steps
+function updateStepCount(goalId) {
+    const checks = document.querySelectorAll(`#steps_${goalId} .step-check`);
+    let completed = 0;
+    checks.forEach(cb => { if (cb.checked) completed++; });
+    document.getElementById(`stepCount_${goalId}`).textContent = `${completed}/${checks.length} independent`;
+    document.getElementById(`stepValue_${goalId}`).value = JSON.stringify({completed: completed, total: checks.length});
+}
+
+// Interval Recording
+function toggleInterval(btn, goalId) {
+    btn.classList.toggle('btn-warning');
+    btn.classList.toggle('btn-outline-secondary');
+    const grid = document.getElementById(`intervals_${goalId}`);
+    const active = grid.querySelectorAll('.btn-warning').length;
+    const total = grid.querySelectorAll('.interval-btn').length;
+    document.getElementById(`intervalCount_${goalId}`).textContent = `${active}/${total} intervals`;
+    document.getElementById(`intervalValue_${goalId}`).value = JSON.stringify({
+        intervals_with: active, total_intervals: total
+    });
+}
+
+// Form Submission
+document.querySelectorAll('.data-entry-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveGoalData(this.dataset.goalId);
+    });
+});
+
+function saveGoalData(goalId) {
+    const form = document.querySelector(`[data-goal-id="${goalId}"].data-entry-form`);
+    const method = form.dataset.method;
+    let value;
+
+    // Get value based on method
+    switch(method) {
+        case 'trial_by_trial':
+            value = document.getElementById(`trialValue_${goalId}`).value;
+            break;
+        case 'percentage':
+            value = parseFloat(document.getElementById(`pctValue_${goalId}`).value);
+            break;
+        case 'frequency_count':
+            value = {
+                count: parseInt(document.getElementById(`count_${goalId}`).value),
+                period_minutes: parseInt(document.getElementById(`period_${goalId}`).value)
+            };
+            break;
+        case 'duration':
+            value = {seconds: parseInt(document.getElementById(`duration_${goalId}`).value)};
+            break;
+        case 'task_analysis_steps':
+            value = JSON.parse(document.getElementById(`stepValue_${goalId}`).value || '{}');
+            break;
+        case 'interval_recording':
+            value = JSON.parse(document.getElementById(`intervalValue_${goalId}`).value || '{}');
+            break;
+    }
+
+    const data = {
+        student_id: '{{ selected_student_id }}',
+        goal_id: goalId,
+        date: document.getElementById('dataDate').value,
+        value: value,
+        method: method,
+        notes: document.getElementById(`notes_${goalId}`).value
+    };
+
+    fetch('/api/data-entry', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Show success
+            const savedEl = document.getElementById(`saved_${goalId}`);
+            savedEl.classList.remove('d-none');
+            setTimeout(() => savedEl.classList.add('d-none'), 3000);
+
+            // Check for mastery alert
+            if (result.mastery_alert) {
+                alert(result.mastery_message);
+            }
+        } else {
+            alert('Error saving: ' + result.error);
+        }
+    })
+    .catch(err => alert('Network error: ' + err));
+}
+
+function saveAndNext(goalId) {
+    saveGoalData(goalId);
+    // Scroll to next goal card
+    const currentCard = document.getElementById(`goalCard_${goalId}`);
+    const nextCard = currentCard.nextElementSibling;
+    if (nextCard && nextCard.classList.contains('goal-card')) {
+        nextCard.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+}
+</script>
+{% endblock %}
