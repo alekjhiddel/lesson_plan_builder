@@ -22,14 +22,14 @@ from modules.api_mode import generate_with_api, is_api_configured
 from modules.updater import check_for_updates, apply_update, get_current_version, export_backup_zip, restore_from_zip, list_backups
 from modules.help_system import get_help_topic, get_all_help_topics, get_help_categories
 from modules.iep_writer import IEPWriter
-from modules.goal_bank import get_goals_by_domain, get_all_domains, search_goals
+from modules.goal_bank import get_goals, get_all_domains, search_goals
 from modules.data_collection import (
     add_data_point, get_goal_data, get_student_data_summary,
     calculate_progress, check_mastery, generate_data_sheet
 )
-from modules.progress_reports import generate_progress_report_prompt
-from modules.parent_comms import ParentCommsGenerator
-from modules.nti_generator import NTIGenerator
+from modules.progress_reports import generate_progress_report, generate_progress_prompt
+from modules.parent_comms import generate_progress_letter, generate_daily_log
+from modules.nti_generator import generate_nti_packet, generate_class_nti_packets
 from modules.partner_sync import (
     export_for_partner, import_partner_students, get_partner_students,
     get_partner_classroom_summary, delete_partner_students
@@ -489,7 +489,7 @@ def iep():
 @app.route('/iep/goals')
 def iep_goals():
     domain = request.args.get('domain', '')
-    goals = get_goals_by_domain(domain) if domain else {}
+    goals = get_goals(domain) if domain else {}
     domains = get_all_domains()
     return render_template('iep_goals.html' if os.path.exists(os.path.join(app.template_folder, 'iep_goals.html')) else 'generate.html',
                          goals=goals, domains=domains, selected_domain=domain)
@@ -572,7 +572,7 @@ def data_progress_report():
         student = get_student(student_id) if student_id else None
         if student:
             config = get_config()
-            prompt = generate_progress_report_prompt(student, config)
+            prompt = generate_progress_prompt(student, [])
             return render_template('prompt_display.html', prompt=prompt, plan_type='progress_report')
         flash('Please select a student.', 'error')
     return render_template('progress_report_view.html', students=students)
@@ -607,8 +607,7 @@ def daily_log():
         
         student = get_student(student_id) if student_id else None
         if student:
-            generator = ParentCommsGenerator()
-            log = generator.generate_daily_log(student, day_rating, activities, notes)
+            log = generate_daily_log(student, request.form.get('date', ''), activities or [], day_rating, notes)
             return render_template('daily_log.html', students=students, log=log, generated=True)
     
     return render_template('daily_log.html', students=students, generated=False)
@@ -626,8 +625,7 @@ def comms_generate():
         return redirect(url_for('communications'))
     
     config = get_config()
-    generator = ParentCommsGenerator()
-    prompt = generator.generate_prompt(student, config, comm_type)
+    prompt = generate_progress_letter(student, comm_type, tone='professional')
     
     return render_template('prompt_display.html', prompt=prompt, plan_type=comm_type)
 
@@ -653,8 +651,7 @@ def nti_generate():
     selected_students = [s for s in students if s['id'] in selected_ids]
     config = get_config()
     
-    generator = NTIGenerator()
-    prompt = generator.generate_nti_prompt(selected_students, config, num_days)
+    prompt = generate_class_nti_packets(selected_students, num_days)
     
     return render_template('prompt_display.html', prompt=prompt, plan_type='nti')
 
