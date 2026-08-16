@@ -9,7 +9,7 @@ import sys
 import json
 import webbrowser
 import threading
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from modules.student_manager import (
     get_all_students, get_student, add_student, update_student, delete_student, ensure_data_dir
 )
@@ -528,8 +528,6 @@ def partner_delete(partner_name):
 def export_backup():
     result = export_backup_zip()
     if result['success']:
-        # Send the file as a download
-        from flask import send_file
         return send_file(
             result['path'],
             as_attachment=True,
