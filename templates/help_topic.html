@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.title }} - Help - SPARK{% endblock %}
+{% block content %}
+<div class="page-header">
+    <a href="{{ url_for('help_index') }}" class="btn btn-secondary" style="margin-right: 12px;">← Back to Help</a>
+    <span class="badge">{{ topic.category }}</span>
+</div>
+
+<div class="card help-content">
+    {{ topic.content | safe }}
+</div>
+{% endblock %}

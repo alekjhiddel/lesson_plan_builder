@@ -41,6 +41,12 @@
                         <span>Schedule</span>
                     </a>
                 </li>
+                <li class="{{ 'active' if request.endpoint in ['partner', 'partner_export', 'partner_import'] }}">
+                    <a href="{{ url_for('partner') }}">
+                        <span class="nav-icon">🤝</span>
+                        <span>Partner Room</span>
+                    </a>
+                </li>
                 <li class="{{ 'active' if request.endpoint == 'process_response' }}">
                     <a href="{{ url_for('process_response') }}">
                         <span class="nav-icon">📋</span>
@@ -57,6 +63,12 @@
                     <a href="{{ url_for('history') }}">
                         <span class="nav-icon">📁</span>
                         <span>Plan History</span>
+                    </a>
+                </li>
+                <li class="{{ 'active' if request.endpoint in ['help_index', 'help_topic'] }}">
+                    <a href="{{ url_for('help_index') }}">
+                        <span class="nav-icon">❓</span>
+                        <span>Help</span>
                     </a>
                 </li>
                 <li class="{{ 'active' if request.endpoint == 'settings' }}">

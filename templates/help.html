@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Help - SPARK{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>❓ Help & Guides</h1>
+    <p class="subtitle">Everything you need to know about using SPARK</p>
+</div>
+
+{% for category, topics in categories.items() %}
+<div class="card" style="margin-bottom: 16px;">
+    <h2>{{ category }}</h2>
+    <div class="help-topic-list">
+        {% for topic in topics %}
+        <a href="{{ url_for('help_topic', topic_id=topic.id) }}" class="help-link">
+            <span class="help-link-icon">📖</span>
+            {{ topic.title }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+
+<div class="card" style="background: #E8F4F8; border-color: #4A90A4;">
+    <h3>💡 Quick Tip</h3>
+    <p>Look for the <span class="help-icon-demo">?</span> icon next to fields throughout the app. 
+    Click it to jump directly to the help guide for that specific field.</p>
+</div>
+{% endblock %}

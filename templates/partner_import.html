@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Import Partner's Students - SPARK{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📥 Import Partner's Students</h1>
+    <p class="subtitle">Paste the export text your partner teacher gave you</p>
+</div>
+
+<form method="POST" class="process-form">
+    <div class="form-section">
+        <div class="form-group">
+            <label for="import_text">Paste your partner's export here:</label>
+            <textarea id="import_text" name="import_text" rows="15"
+                      placeholder="Paste the text your partner copied from their SPARK app...&#10;&#10;It should start with { and end with }"></textarea>
+            <span class="help-text">Your partner gets this by going to Partner Room → Share My Students in their SPARK app</span>
+        </div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 20px; background: #E3F2FD; border-color: #90CAF9;">
+        <p><strong>What this does:</strong></p>
+        <ul style="font-size: 14px; color: #37474F; margin-left: 20px;">
+            <li>Adds their students to your <strong>Schedule</strong> view (for aide coverage coordination)</li>
+            <li>Shows their kids' communication modes and needs (for when you cover their room)</li>
+            <li>Does <strong>NOT</strong> add them to your IEPs, lesson plans, or progress reports</li>
+            <li>You can remove this data anytime from the Partner Room page</li>
+        </ul>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">📥 Import Students</button>
+        <a href="{{ url_for('partner') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

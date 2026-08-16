@@ -77,4 +77,127 @@
         <button type="submit" class="btn btn-primary">Save Settings</button>
     </div>
 </form>
+
+<div class="form-section" style="margin-top: 24px;">
+    <h2>🔄 Software Updates</h2>
+    <p class="help-text">Check if there's a newer version of SPARK available.</p>
+    <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
+        <button onclick="checkUpdates()" class="btn btn-secondary" id="check-update-btn">
+            🔄 Check for Updates
+        </button>
+        <span id="update-status"></span>
+    </div>
+    <div id="update-details" style="display: none; margin-top: 16px;">
+        <div id="update-changes" class="card" style="padding: 16px; background: #f8f9fa;"></div>
+        <button onclick="applyUpdate()" class="btn btn-primary" id="apply-update-btn" style="margin-top: 12px;">
+            ⬇️ Download & Install Update
+        </button>
+    </div>
+</div>
+
 {% endblock %}
+
+<div class="form-section" style="margin-top: 24px;">
+    <h2>💾 Backup & Restore</h2>
+    <p class="help-text">Save all your student data, lesson plans, and settings to a safe place. Do this regularly!</p>
+    
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px;">
+        <div class="card" style="flex: 1; min-width: 250px; padding: 20px; text-align: center;">
+            <h3>📤 Export Backup</h3>
+            <p class="help-text" style="margin-bottom: 12px;">Download a zip file with all your data. Save it to a USB drive, external hard drive, or safe folder.</p>
+            <a href="{{ url_for('export_backup') }}" class="btn btn-primary">
+                💾 Download Backup
+            </a>
+        </div>
+        
+        <div class="card" style="flex: 1; min-width: 250px; padding: 20px; text-align: center;">
+            <h3>📥 Restore from Backup</h3>
+            <p class="help-text" style="margin-bottom: 12px;">Got a new computer? Upload a previous backup to restore all your data.</p>
+            <form method="POST" action="{{ url_for('restore_backup') }}" enctype="multipart/form-data"
+                  onsubmit="return confirm('This will REPLACE your current data with the backup. Are you sure?')">
+                <input type="file" name="backup_file" accept=".zip" style="margin-bottom: 8px; font-size: 14px;">
+                <br>
+                <button type="submit" class="btn btn-secondary">📥 Restore Data</button>
+            </form>
+        </div>
+    </div>
+    
+    <p class="help-text" style="margin-top: 12px;">
+        🔒 <strong>Reminder:</strong> Your backup contains student names and IEP data. Store it somewhere safe and private — NOT in cloud storage (Google Drive, iCloud, Dropbox).
+        A USB drive in a locked drawer is perfect.
+    </p>
+</div>
+
+{% block extra_js %}
+<script>
+function checkUpdates() {
+    var btn = document.getElementById('check-update-btn');
+    var status = document.getElementById('update-status');
+    var details = document.getElementById('update-details');
+    
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Checking...';
+    status.innerHTML = '';
+    details.style.display = 'none';
+    
+    fetch('/check-updates')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) {
+            status.innerHTML = '<span style="color: #e57373;">❌ ' + data.error + '</span>';
+        } else if (data.available) {
+            status.innerHTML = '<span style="color: #4A90A4; font-weight: 600;">✨ Update available!</span>';
+            var changesHtml = '<strong>What\'s new:</strong><ul>';
+            if (data.changes) {
+                data.changes.forEach(function(c) { changesHtml += '<li>' + c + '</li>'; });
+            }
+            changesHtml += '</ul>';
+            document.getElementById('update-changes').innerHTML = changesHtml;
+            details.style.display = 'block';
+        } else {
+            status.innerHTML = '<span style="color: #4CAF50;">✅ You\'re up to date!</span>';
+        }
+    })
+    .catch(function(err) {
+        status.innerHTML = '<span style="color: #e57373;">❌ Could not check. Are you online?</span>';
+    })
+    .finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = '🔄 Check for Updates';
+    });
+}
+
+function applyUpdate() {
+    var btn = document.getElementById('apply-update-btn');
+    var status = document.getElementById('update-status');
+    
+    if (!confirm('This will update SPARK to the latest version. Your student data will be preserved. Continue?')) {
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Downloading & installing...';
+    status.innerHTML = '<span style="color: #4A90A4;">Updating... this takes about 15 seconds</span>';
+    
+    fetch('/apply-update', {method: 'POST'})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            status.innerHTML = '<span style="color: #4CAF50; font-weight: 600;">✅ ' + data.message + '</span>';
+            btn.innerHTML = '✅ Updated! Restart the app.';
+            setTimeout(function() {
+                alert('Update complete! Close this window and double-click start.command again to restart with the new version.');
+            }, 500);
+        } else {
+            status.innerHTML = '<span style="color: #e57373;">❌ ' + data.error + '</span>';
+            btn.disabled = false;
+            btn.innerHTML = '⬇️ Download & Install Update';
+        }
+    })
+    .catch(function(err) {
+        status.innerHTML = '<span style="color: #e57373;">❌ Update failed. Try again or download manually from GitHub.</span>';
+        btn.disabled = false;
+        btn.innerHTML = '⬇️ Download & Install Update';
+    });
+}
+</script>

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Partner Room - SPARK{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>🤝 Partner Room</h1>
+    <p class="subtitle">Coordinate with your partner teacher's classroom</p>
+</div>
+
+<div class="action-grid" style="margin-bottom: 24px;">
+    <a href="{{ url_for('partner_export') }}" class="action-card">
+        <span class="action-icon">📤</span>
+        <h3>Share My Students</h3>
+        <p>Export your classroom info for your partner teacher to import</p>
+    </a>
+    <a href="{{ url_for('partner_import') }}" class="action-card">
+        <span class="action-icon">📥</span>
+        <h3>Import Partner's Students</h3>
+        <p>Paste your partner's export to see their kids in your schedule</p>
+    </a>
+</div>
+
+{% if partners %}
+    {% for partner in partners %}
+    <div class="card">
+        <div class="student-header" style="margin-bottom: 16px;">
+            <h2>{{ partner.partner_name }}'s Room ({{ partner.num_students }} students)</h2>
+            <form method="POST" action="{{ url_for('partner_delete', partner_name=partner.partner_name) }}" 
+                  style="display:inline;" onsubmit="return confirm('Remove {{ partner.partner_name }}\'s data?')">
+                <button type="submit" class="btn btn-small btn-danger">Remove</button>
+            </form>
+        </div>
+        
+        <div class="dashboard-grid" style="margin-bottom: 16px;">
+            <div class="stat-card" style="padding: 12px;">
+                <div class="stat-info">
+                    <h3>{{ partner.num_students }}</h3>
+                    <p>Students</p>
+                </div>
+            </div>
+            <div class="stat-card" style="padding: 12px;">
+                <div class="stat-info">
+                    <h3>{{ partner.homeroom_count }}</h3>
+                    <p>Go to Homeroom</p>
+                </div>
+            </div>
+            <div class="stat-card" style="padding: 12px;">
+                <div class="stat-info">
+                    <h3>{{ partner.aide_escort_count }}</h3>
+                    <p>Need Aide Escort</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="students-grid">
+            {% for student in partner.students %}
+            <div class="card student-card" style="margin-bottom: 8px;">
+                <h3>{{ student.name }}</h3>
+                <div class="student-details">
+                    {% if student.communication_mode %}
+                        <p><strong>Communication:</strong> {{ student.communication_mode }}
+                            {% if student.communication_details %} — {{ student.communication_details }}{% endif %}
+                        </p>
+                    {% endif %}
+                    {% if student.physical_needs %}
+                        <p><strong>Physical:</strong> {{ student.physical_needs | join(', ') }}</p>
+                    {% endif %}
+                    {% if student.behavioral_needs %}
+                        <p><strong>Behavioral:</strong> {{ student.behavioral_needs[:100] }}</p>
+                    {% endif %}
+                    {% if student.reinforcers %}
+                        <p><strong>Reinforcers:</strong> {{ student.reinforcers[:80] }}</p>
+                    {% endif %}
+                    {% if student.homeroom_attends %}
+                        <p><strong>Homeroom:</strong> {{ student.homeroom_duration }}
+                            {% if student.homeroom_aide_accompanies %}(with aide){% endif %}
+                        </p>
+                    {% endif %}
+                    {% if student.medical_alerts %}
+                        <p style="color: #C62828;"><strong>⚠️ Medical:</strong> {{ student.medical_alerts | join(', ') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">🤝</div>
+    <h2>No partner data yet</h2>
+    <p>Ask your partner teacher to export their classroom info from their SPARK app, then import it here.</p>
+</div>
+{% endif %}
+{% endblock %}

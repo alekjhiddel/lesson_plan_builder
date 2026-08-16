@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Share My Students - SPARK{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📤 Share My Students with Partner</h1>
+    <p class="subtitle">Copy this and give it to your partner teacher to paste into their SPARK app</p>
+</div>
+
+<div class="prompt-instructions">
+    <div class="step-list">
+        <div class="step">
+            <span class="step-number">1</span>
+            <p>Click <strong>"Copy"</strong> below</p>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <p>Send it to your partner (text, email, USB)</p>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            <p>They paste it into <strong>Partner Room → Import</strong> in their SPARK</p>
+        </div>
+    </div>
+</div>
+
+<div class="prompt-container">
+    <div class="prompt-actions">
+        <button onclick="copyExport()" class="btn btn-primary" id="copy-btn">
+            📋 Copy to Clipboard
+        </button>
+        <span class="copy-feedback" id="copy-feedback"></span>
+    </div>
+    <pre class="prompt-text" id="export-text" style="max-height: 300px;">{{ export_text }}</pre>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <h3>🔒 Privacy Note</h3>
+    <p class="help-text">This export contains student names and operational information. Only share it with your partner teacher — they are bound by FERPA just like you. Do not post this anywhere public or send via unsecured channels.</p>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyExport() {
+    var text = document.getElementById('export-text').innerText;
+    navigator.clipboard.writeText(text).then(function() {
+        var btn = document.getElementById('copy-btn');
+        btn.innerHTML = '✅ Copied!';
+        btn.classList.add('btn-success');
+        document.getElementById('copy-feedback').textContent = 'Now send this to your partner!';
+        setTimeout(function() {
+            btn.innerHTML = '📋 Copy to Clipboard';
+            btn.classList.remove('btn-success');
+        }, 3000);
+    });
+}
+</script>
+{% endblock %}

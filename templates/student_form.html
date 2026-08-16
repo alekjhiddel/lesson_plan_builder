@@ -11,6 +11,7 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="name">Student's Name *</label>
+                <a href="{{ url_for('help_topic', topic_id='student_name') }}" class="help-icon" target="_blank" title="Help: Student Name">?</a>
                 <input type="text" id="name" name="name" value="{{ student.name if student else '' }}" required>
                 <span class="help-text">🔒 This name stays on your computer only — never sent to AI</span>
             </div>
@@ -29,6 +30,7 @@
         <h2>Communication</h2>
         <div class="form-group">
             <label for="communication_mode">How does this student communicate?</label>
+            <a href="{{ url_for('help_topic', topic_id='communication_mode') }}" class="help-icon" target="_blank" title="Help: Communication">?</a>
             <select id="communication_mode" name="communication_mode">
                 <option value="">-- Select --</option>
                 <option value="Verbal" {{ 'selected' if student and student.communication_mode == 'Verbal' }}>Verbal (speaks in sentences)</option>
@@ -62,12 +64,14 @@
         </div>
         <div class="form-group">
             <label for="behavioral_needs">Behavioral needs</label>
+            <a href="{{ url_for('help_topic', topic_id='behavioral_needs') }}" class="help-icon" target="_blank" title="Help: Behavioral Needs">?</a>
             <textarea id="behavioral_needs" name="behavioral_needs" rows="3"
                       placeholder="e.g., Elopes when overstimulated, hits when told 'no', needs 5-min warning before transitions, has a BIP — use token board with 5 tokens for iPad time">{{ student.behavioral_needs if student else '' }}</textarea>
             <span class="help-text">Include info from their BIP (Behavior Intervention Plan) if they have one</span>
         </div>
         <div class="form-group">
             <label for="sensory_needs">Sensory needs</label>
+            <a href="{{ url_for('help_topic', topic_id='sensory_needs') }}" class="help-icon" target="_blank" title="Help: Sensory Needs">?</a>
             <textarea id="sensory_needs" name="sensory_needs" rows="2"
                       placeholder="e.g., Seeks deep pressure, avoids loud sounds (wear headphones for fire drills), mouths everything, needs weighted lap pad for seated work">{{ student.sensory_needs if student else '' }}</textarea>
         </div>
@@ -77,6 +81,7 @@
         <h2>What Motivates Them</h2>
         <div class="form-group">
             <label for="reinforcers">Reinforcers / Motivators</label>
+            <a href="{{ url_for('help_topic', topic_id='reinforcers') }}" class="help-icon" target="_blank" title="Help: Reinforcers">?</a>
             <textarea id="reinforcers" name="reinforcers" rows="2"
                       placeholder="e.g., iPad (YouTube videos), spinning objects, bubbles, tickles, goldfish crackers, music, swinging. Token board: 5 tokens = 3 min iPad">{{ student.reinforcers if student else '' }}</textarea>
             <span class="help-text">💡 What makes this kid light up? What will they work for?</span>
@@ -87,6 +92,7 @@
         <h2>IEP Goals <span class="help-text">(one per line)</span></h2>
         <div class="form-group">
             <label for="iep_goals">Current IEP goals</label>
+            <a href="{{ url_for('help_topic', topic_id='iep_goals') }}" class="help-icon" target="_blank" title="Help: IEP Goals">?</a>
             <textarea id="iep_goals" name="iep_goals" rows="8"
                       placeholder="e.g.,&#10;Given a visual schedule, will independently transition between 3 activities with no more than 1 verbal prompt in 4/5 opportunities&#10;Will request preferred items/activities using AAC device in 8/10 trials across 3 consecutive sessions&#10;Will complete 3-step handwashing routine independently using visual task analysis in 4/5 trials&#10;Will identify 5 functional sight words (EXIT, STOP, his name, BOYS, PUSH) with 80% accuracy">{{ student.iep_goals | join('\n') if student and student.iep_goals else '' }}</textarea>
             <span class="help-text">Tip: Copy these directly from the IEP! Include the full measurable goal with criteria.</span>
@@ -117,6 +123,7 @@
         <h2>Homeroom / Inclusion</h2>
         <div class="form-group">
             <label>Does this student go to a general education homeroom?</label>
+            <a href="{{ url_for('help_topic', topic_id='homeroom') }}" class="help-icon" target="_blank" title="Help: Homeroom">?</a>
             <div class="radio-group">
                 <label class="radio-label">
                     <input type="radio" name="homeroom_attends" value="yes" 
@@ -163,6 +170,7 @@
         <h2>Life Skills Priorities <span class="help-text">(one per line)</span></h2>
         <div class="form-group">
             <label for="life_skills_priorities">What life skills are you working toward?</label>
+            <a href="{{ url_for('help_topic', topic_id='life_skills') }}" class="help-icon" target="_blank" title="Help: Life Skills">?</a>
             <textarea id="life_skills_priorities" name="life_skills_priorities" rows="4"
                       placeholder="e.g.,&#10;Toilet training (on a schedule, not yet self-initiating)&#10;Putting on/taking off coat independently&#10;Using a spoon without spilling&#10;Waiting without screaming (currently ~30 seconds max)&#10;Washing hands (can do with visual prompt)">{{ student.life_skills_priorities | join('\n') if student and student.life_skills_priorities else '' }}</textarea>
             <span class="help-text">💡 These are the BIG goals — the skills that lead to independence</span>
