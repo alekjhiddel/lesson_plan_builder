@@ -1,38 +1,69 @@
 @echo off
-REM IEP Lesson Planner - Windows Launcher
-REM Double-click this file to start the app!
+REM ═══════════════════════════════════════════════════════
+REM  IEP Lesson Planner — Windows Launcher
+REM  Double-click this file to start the app!
+REM ═══════════════════════════════════════════════════════
 
 cd /d "%~dp0"
 
 echo.
-echo 🍎 Starting IEP Lesson Planner...
+echo ═══════════════════════════════════════════════════════
+echo   IEP Lesson Planner
+echo ═══════════════════════════════════════════════════════
 echo.
 
-REM Check for Python
+REM ─── Step 1: Check for Python ───
 where python >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ❌ Python is not installed.
-    echo Please install Python from: https://www.python.org/downloads/
-    echo Make sure to check "Add Python to PATH" during installation!
+    echo ❌ Python is not installed on this computer.
+    echo.
+    echo    To install Python:
+    echo    1. Go to: https://www.python.org/downloads/
+    echo    2. Click the big yellow "Download Python" button
+    echo    3. IMPORTANT: Check the box that says "Add Python to PATH"
+    echo    4. Click "Install Now"
+    echo    5. Then come back and double-click start.bat again
+    echo.
     pause
     exit /b 1
 )
 
-REM Check/install requirements
+for /f "tokens=*" %%i in ('python --version') do echo Found: %%i
+
+REM ─── Step 2: Set up virtual environment (first time only) ───
 if not exist "venv" (
-    echo 📦 First-time setup: Installing required packages...
+    echo.
+    echo Setting up for first time use... (takes about 30 seconds)
+    echo.
     python -m venv venv
+    if %errorlevel% neq 0 (
+        echo ❌ Failed to create virtual environment.
+        echo    Make sure Python was installed with "Add to PATH" checked.
+        pause
+        exit /b 1
+    )
     call venv\Scripts\activate.bat
     pip install -r requirements.txt --quiet
-    echo ✅ Setup complete!
-    echo.
+    if %errorlevel% neq 0 (
+        echo ❌ Failed to install packages.
+        echo    Check your internet connection and try again.
+        pause
+        exit /b 1
+    )
+    echo Setup complete!
 ) else (
     call venv\Scripts\activate.bat
 )
 
-REM Run the app
-echo 🌐 Opening in your browser at http://127.0.0.1:5000
-echo    Press Ctrl+C to stop
+REM ─── Step 3: Launch the app ───
 echo.
+echo ═══════════════════════════════════════════════════════
+echo   Opening in your browser...
+echo   Address: http://127.0.0.1:5000
+echo.
+echo   To STOP the app: Press Ctrl+C or close this window
+echo ═══════════════════════════════════════════════════════
+echo.
+
 python app.py
 pause
