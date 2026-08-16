@@ -1,5 +1,5 @@
 """
-IEP Lesson Planner
+SPARK
 A privacy-first lesson plan generator for MSD/autism classrooms.
 All student data stays local. Names are anonymized before any external AI interaction.
 """
@@ -582,7 +582,7 @@ if __name__ == '__main__':
     threading.Thread(target=open_browser, daemon=True).start()
     
     print("\n" + "="*50)
-    print("  🍎 IEP Lesson Planner is running!")
+    print("  🌟 SPARK is running!")
     print("  Open your browser to: http://127.0.0.1:5000")
     print("  Press Ctrl+C to stop")
     print("="*50 + "\n")

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════
-# 🍎 IEP Lesson Planner — Mac Launcher
+# 🍎 SPARK — Mac Launcher
 # Double-click this file to start the app!
 # ═══════════════════════════════════════════════════════════
 
@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo "═══════════════════════════════════════════════════════"
-echo "  🍎 IEP Lesson Planner"
+echo "  🍎 SPARK"
 echo "═══════════════════════════════════════════════════════"
 echo ""
 

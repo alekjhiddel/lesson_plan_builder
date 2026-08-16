@@ -1,6 +1,6 @@
 @echo off
 REM ═══════════════════════════════════════════════════════
-REM  IEP Lesson Planner — Windows Launcher
+REM  SPARK — Windows Launcher
 REM  Double-click this file to start the app!
 REM ═══════════════════════════════════════════════════════
 
@@ -8,7 +8,7 @@ cd /d "%~dp0"
 
 echo.
 echo ═══════════════════════════════════════════════════════
-echo   IEP Lesson Planner
+echo   SPARK
 echo ═══════════════════════════════════════════════════════
 echo.
 
