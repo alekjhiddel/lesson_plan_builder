@@ -21,6 +21,15 @@ from modules.scheduler import get_current_themes, get_scheduling_context, get_th
 from modules.api_mode import generate_with_api, is_api_configured
 from modules.updater import check_for_updates, apply_update, get_current_version, export_backup_zip, restore_from_zip, list_backups
 from modules.help_system import get_help_topic, get_all_help_topics, get_help_categories
+from modules.iep_writer import IEPWriter
+from modules.goal_bank import get_goals_by_domain, get_all_domains, search_goals
+from modules.data_collection import (
+    add_data_point, get_goal_data, get_student_data_summary,
+    calculate_progress, check_mastery, generate_data_sheet
+)
+from modules.progress_reports import generate_progress_report_prompt
+from modules.parent_comms import ParentCommsGenerator
+from modules.nti_generator import NTIGenerator
 from modules.partner_sync import (
     export_for_partner, import_partner_students, get_partner_students,
     get_partner_classroom_summary, delete_partner_students
@@ -465,6 +474,189 @@ def check_updates():
 def do_update():
     result = apply_update()
     return jsonify(result)
+
+
+# --- IEP Routes ---
+
+@app.route('/iep')
+def iep():
+    students = get_all_students()
+    domains = get_all_domains()
+    return render_template('iep.html' if os.path.exists(os.path.join(app.template_folder, 'iep.html')) else 'dashboard.html',
+                         students=students, domains=domains)
+
+
+@app.route('/iep/goals')
+def iep_goals():
+    domain = request.args.get('domain', '')
+    goals = get_goals_by_domain(domain) if domain else {}
+    domains = get_all_domains()
+    return render_template('iep_goals.html' if os.path.exists(os.path.join(app.template_folder, 'iep_goals.html')) else 'generate.html',
+                         goals=goals, domains=domains, selected_domain=domain)
+
+
+@app.route('/iep/goals/search')
+def iep_goals_search():
+    query = request.args.get('q', '')
+    results = search_goals(query) if query else []
+    return jsonify({'results': results})
+
+
+@app.route('/iep/generate', methods=['POST'])
+def iep_generate():
+    students = get_all_students()
+    student_id = request.form.get('student_id', '')
+    iep_type = request.form.get('iep_type', 'full')
+    
+    student = get_student(student_id) if student_id else None
+    if not student:
+        flash('Please select a student.', 'error')
+        return redirect(url_for('iep'))
+    
+    config = get_config()
+    writer = IEPWriter()
+    prompt = writer.generate_iep_prompt(student, config, iep_type)
+    
+    return render_template('prompt_display.html', prompt=prompt, plan_type='iep')
+
+
+@app.route('/iep/arc-prep', methods=['GET', 'POST'])
+def iep_arc_prep():
+    students = get_all_students()
+    if request.method == 'POST':
+        student_id = request.form.get('student_id', '')
+        student = get_student(student_id) if student_id else None
+        if student:
+            config = get_config()
+            writer = IEPWriter()
+            prompt = writer.generate_arc_prep_prompt(student, config)
+            return render_template('prompt_display.html', prompt=prompt, plan_type='arc_prep')
+        flash('Please select a student.', 'error')
+    return render_template('iep_arc_prep.html' if os.path.exists(os.path.join(app.template_folder, 'iep_arc_prep.html')) else 'generate.html',
+                         students=students)
+
+
+# --- Data & Progress Routes ---
+
+@app.route('/data/entry', methods=['GET', 'POST'])
+def data_entry():
+    students = get_all_students()
+    if request.method == 'POST':
+        student_id = request.form.get('student_id', '')
+        goal_text = request.form.get('goal_text', '')
+        value = request.form.get('value', '')
+        method = request.form.get('method', 'trial')
+        notes = request.form.get('notes', '')
+        
+        if student_id and goal_text and value:
+            from datetime import date
+            add_data_point(student_id, goal_text, date.today().isoformat(), value, method, notes)
+            flash('Data saved! ✅', 'success')
+        else:
+            flash('Please fill in all required fields.', 'error')
+    
+    return render_template('data_entry.html', students=students)
+
+
+@app.route('/data/sheets')
+def data_sheets():
+    students = get_all_students()
+    return render_template('data_sheets.html', students=students)
+
+
+@app.route('/data/progress-report', methods=['GET', 'POST'])
+def data_progress_report():
+    students = get_all_students()
+    if request.method == 'POST':
+        student_id = request.form.get('student_id', '')
+        student = get_student(student_id) if student_id else None
+        if student:
+            config = get_config()
+            prompt = generate_progress_report_prompt(student, config)
+            return render_template('prompt_display.html', prompt=prompt, plan_type='progress_report')
+        flash('Please select a student.', 'error')
+    return render_template('progress_report_view.html', students=students)
+
+
+@app.route('/data/graphs')
+def data_graphs():
+    students = get_all_students()
+    student_id = request.args.get('student_id', '')
+    student_data = None
+    if student_id:
+        student_data = get_student_data_summary(student_id)
+    return render_template('progress_graphs.html', students=students, student_data=student_data)
+
+
+# --- Parent Communications Routes ---
+
+@app.route('/communications')
+def communications():
+    students = get_all_students()
+    return render_template('parent_comms.html', students=students)
+
+
+@app.route('/communications/daily-log', methods=['GET', 'POST'])
+def daily_log():
+    students = get_all_students()
+    if request.method == 'POST':
+        student_id = request.form.get('student_id', '')
+        day_rating = request.form.get('day_rating', 'good')
+        activities = request.form.get('activities', '')
+        notes = request.form.get('notes', '')
+        
+        student = get_student(student_id) if student_id else None
+        if student:
+            generator = ParentCommsGenerator()
+            log = generator.generate_daily_log(student, day_rating, activities, notes)
+            return render_template('daily_log.html', students=students, log=log, generated=True)
+    
+    return render_template('daily_log.html', students=students, generated=False)
+
+
+@app.route('/communications/generate', methods=['POST'])
+def comms_generate():
+    students = get_all_students()
+    student_id = request.form.get('student_id', '')
+    comm_type = request.form.get('comm_type', 'progress_letter')
+    
+    student = get_student(student_id) if student_id else None
+    if not student:
+        flash('Please select a student.', 'error')
+        return redirect(url_for('communications'))
+    
+    config = get_config()
+    generator = ParentCommsGenerator()
+    prompt = generator.generate_prompt(student, config, comm_type)
+    
+    return render_template('prompt_display.html', prompt=prompt, plan_type=comm_type)
+
+
+# --- NTI Routes ---
+
+@app.route('/nti')
+def nti():
+    students = get_all_students()
+    config = get_config()
+    return render_template('nti.html', students=students, config=config)
+
+
+@app.route('/nti/generate', methods=['POST'])
+def nti_generate():
+    students = get_all_students()
+    num_days = int(request.form.get('num_days', 1))
+    selected_ids = request.form.getlist('student_ids')
+    
+    if not selected_ids:
+        selected_ids = [s['id'] for s in students]
+    
+    selected_students = [s for s in students if s['id'] in selected_ids]
+    config = get_config()
+    
+    generator = NTIGenerator()
+    prompt = generator.generate_nti_prompt(selected_students, config, num_days)
+    
+    return render_template('prompt_display.html', prompt=prompt, plan_type='nti')
 
 
 # --- Help Routes ---
