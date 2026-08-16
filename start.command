@@ -100,7 +100,7 @@ if [ ! -f "$VENV_PYTHON" ]; then
 fi
 
 echo "═══════════════════════════════════════════════════════"
-echo "  🌐 Opening in your browser..."
+echo "  🌐 Opening in your default browser..."
 echo "  Address: http://127.0.0.1:5000"
 echo ""
 echo "  To STOP: Press Ctrl+C or close this window"
