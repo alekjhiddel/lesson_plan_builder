@@ -1023,3 +1023,97 @@ body {
     color: var(--text-light);
     font-weight: 500;
 }
+
+
+/* ===== Help System ===== */
+.help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: 6px;
+    transition: all 0.2s;
+    vertical-align: middle;
+}
+
+.help-icon:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.1);
+}
+
+.help-icon-demo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.help-topic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.help-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.help-link:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.help-link-icon {
+    font-size: 16px;
+}
+
+.help-content {
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.help-content h2 {
+    margin-top: 0;
+}
+
+.help-content h3 {
+    margin-top: 20px;
+    margin-bottom: 8px;
+}
+
+.help-content ul, .help-content ol {
+    margin-left: 20px;
+    margin-bottom: 12px;
+}
+
+.help-content li {
+    margin-bottom: 6px;
+}
+
+.help-content p {
+    margin-bottom: 12px;
+}
