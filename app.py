@@ -19,6 +19,12 @@ from modules.response_parser import ResponseParser
 from modules.scraper import scrape_url, get_knowledge_base, delete_resource
 from modules.scheduler import get_current_themes, get_scheduling_context, get_themes_for_month
 from modules.api_mode import generate_with_api, is_api_configured
+from modules.updater import check_for_updates, apply_update, get_current_version, export_backup_zip, restore_from_zip, list_backups
+from modules.help_system import get_help_topic, get_all_help_topics, get_help_categories
+from modules.partner_sync import (
+    export_for_partner, import_partner_students, get_partner_students,
+    get_partner_classroom_summary, delete_partner_students
+)
 from modules.schedule_engine import (
     get_schedule_config, save_schedule_config, get_default_config,
     generate_schedule, format_schedule_for_display, format_schedule_for_prompt
@@ -445,6 +451,116 @@ def settings():
         flash('Settings saved! ⚙️', 'success')
         return redirect(url_for('settings'))
     return render_template('settings.html', config=config)
+
+
+# --- Update Routes ---
+
+@app.route('/check-updates')
+def check_updates():
+    result = check_for_updates()
+    return jsonify(result)
+
+
+@app.route('/apply-update', methods=['POST'])
+def do_update():
+    result = apply_update()
+    return jsonify(result)
+
+
+# --- Help Routes ---
+
+@app.route('/help')
+def help_index():
+    categories = get_help_categories()
+    return render_template('help.html', categories=categories)
+
+
+@app.route('/help/<topic_id>')
+def help_topic(topic_id):
+    topic = get_help_topic(topic_id)
+    return render_template('help_topic.html', topic=topic, topic_id=topic_id)
+
+
+# --- Partner Teacher Routes ---
+
+@app.route('/partner')
+def partner():
+    partner_summary = get_partner_classroom_summary()
+    return render_template('partner.html', partners=partner_summary)
+
+
+@app.route('/partner/export')
+def partner_export():
+    students = get_all_students()
+    config = get_config()
+    export_text = export_for_partner(students, config)
+    return render_template('partner_export.html', export_text=export_text)
+
+
+@app.route('/partner/import', methods=['GET', 'POST'])
+def partner_import():
+    if request.method == 'POST':
+        import_text = request.form.get('import_text', '').strip()
+        if not import_text:
+            flash('Please paste the partner export data.', 'error')
+            return render_template('partner_import.html')
+        
+        result = import_partner_students(import_text)
+        if result['success']:
+            flash(f"✅ {result['message']}", 'success')
+            return redirect(url_for('partner'))
+        else:
+            flash(f"❌ {result['error']}", 'error')
+    
+    return render_template('partner_import.html')
+
+
+@app.route('/partner/delete/<partner_name>', methods=['POST'])
+def partner_delete(partner_name):
+    delete_partner_students(partner_name)
+    flash(f'Removed {partner_name}\'s student data.', 'info')
+    return redirect(url_for('partner'))
+
+
+# --- Backup Routes ---
+
+@app.route('/backup/export')
+def export_backup():
+    result = export_backup_zip()
+    if result['success']:
+        # Send the file as a download
+        from flask import send_file
+        return send_file(
+            result['path'],
+            as_attachment=True,
+            download_name=result['filename']
+        )
+    return jsonify(result)
+
+
+@app.route('/backup/restore', methods=['POST'])
+def restore_backup():
+    if 'backup_file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    file = request.files['backup_file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected'})
+    
+    # Save uploaded file to temp location
+    import tempfile
+    temp_path = os.path.join(tempfile.gettempdir(), 'spark_restore.zip')
+    file.save(temp_path)
+    
+    result = restore_from_zip(temp_path)
+    os.remove(temp_path)
+    
+    if result['success']:
+        flash(result['message'], 'success')
+    else:
+        flash(result['error'], 'error')
+    
+    return redirect(url_for('settings'))
 
 
 # ============================================================
