@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Log Service Session - SPARK{% endblock %}
+{% block body_class %}services-log-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📝 Log Service Session: {{ student.name }}</h1>
+    <p class="subtitle">Record a therapy or service session</p>
+</div>
+
+<div class="form-section">
+    <form method="POST">
+        <div class="form-group">
+            <label for="service_type">Service Type</label>
+            <select name="service_type" id="service_type" class="form-control" required>
+                <option value="">-- Select Service --</option>
+                {% for stype in service_types %}
+                <option value="{{ stype }}">{{ stype }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="session_date">Date</label>
+                <input type="date" id="session_date" name="session_date" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="minutes_delivered">Minutes Delivered</label>
+                <input type="number" id="minutes_delivered" name="minutes_delivered" class="form-control" min="1" placeholder="e.g. 30" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="provider">Provider</label>
+            <input type="text" id="provider" name="provider" class="form-control" placeholder="e.g. Sarah Johnson, SLP">
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Session Notes <span class="optional">(optional)</span></label>
+            <textarea id="notes" name="notes" rows="3" class="form-control" placeholder="Brief notes about the session..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 Log Session</button>
+            <a href="{{ url_for('services_dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% if services and services.get('sessions') %}
+<div class="form-section" style="margin-top: 24px;">
+    <h2>📋 Recent Sessions</h2>
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+            <tr style="background: #f8f9fa;">
+                <th style="padding: 8px; text-align: left;">Date</th>
+                <th style="padding: 8px; text-align: left;">Service</th>
+                <th style="padding: 8px; text-align: left;">Minutes</th>
+                <th style="padding: 8px; text-align: left;">Provider</th>
+                <th style="padding: 8px; text-align: left;">Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for session in services.get('sessions', [])[-10:]|reverse %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 8px;">{{ session.date }}</td>
+                <td style="padding: 8px;">{{ session.service_type }}</td>
+                <td style="padding: 8px;">{{ session.minutes }}</td>
+                <td style="padding: 8px;">{{ session.provider }}</td>
+                <td style="padding: 8px;">{{ session.notes or '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

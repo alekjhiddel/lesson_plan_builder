@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Add Related Service - SPARK{% endblock %}
+{% block body_class %}services-add-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>➕ Add Related Service</h1>
+    <p class="subtitle">Add a new related service to a student's record</p>
+</div>
+
+<div class="form-section">
+    {% if students %}
+    <form method="POST" action="{{ url_for('add_service_page') }}">
+        <div class="form-group">
+            <label for="student_id">Student</label>
+            <select name="student_id" id="student_id" class="form-control" required>
+                <option value="">-- Select Student --</option>
+                {% for student in students %}
+                <option value="{{ student.id }}">{{ student.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="service_type">Service Type</label>
+            <select name="service_type" id="service_type" class="form-control" required>
+                <option value="">-- Select Service --</option>
+                {% for stype in service_types %}
+                <option value="{{ stype }}">{{ stype }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="required_minutes">Required Minutes</label>
+                <input type="number" id="required_minutes" name="required_minutes" class="form-control" min="1" placeholder="e.g. 60" required>
+            </div>
+            <div class="form-group">
+                <label for="frequency">Frequency</label>
+                <select name="frequency" id="frequency" class="form-control">
+                    <option value="weekly">Per Week</option>
+                    <option value="monthly">Per Month</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="provider_name">Provider Name</label>
+            <input type="text" id="provider_name" name="provider_name" class="form-control" placeholder="e.g. Sarah Johnson, SLP">
+        </div>
+
+        <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" class="form-control">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 Add Service</button>
+            <a href="{{ url_for('services_dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+    {% else %}
+    <p class="help-text"><em>Add students first before assigning related services.</em></p>
+    <a href="{{ url_for('student_add') }}" class="btn btn-secondary">+ Add Students</a>
+    {% endif %}
+</div>
+{% endblock %}

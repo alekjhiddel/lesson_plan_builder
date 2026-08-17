@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}ARC Meeting Prep - SPARK{% endblock %}
+{% block body_class %}arc-prep-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🤝 ARC Meeting Prep</h1>
+    <p class="subtitle">Generate organized talking points and data summaries for ARC meetings</p>
+</div>
+
+{% if report %}
+<div class="form-section">
+    <div class="plan-actions" style="margin-bottom: 16px;">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Print</button>
+        <a href="{{ url_for('iep_arc_prep') }}" class="btn btn-secondary">← Prepare Another</a>
+    </div>
+    
+    <div class="print-section">
+        {% if report.student_name %}
+        <h2>ARC Prep: {{ report.student_name }}</h2>
+        {% endif %}
+        
+        {% if report.current_goals %}
+        <h3>📋 Current Goal Status</h3>
+        <div class="card" style="padding: 16px; margin-bottom: 16px;">
+            {{ report.current_goals }}
+        </div>
+        {% endif %}
+        
+        {% if report.progress_summary %}
+        <h3>📊 Progress Summary</h3>
+        <div class="card" style="padding: 16px; margin-bottom: 16px;">
+            {{ report.progress_summary }}
+        </div>
+        {% endif %}
+        
+        {% if report.recommendations %}
+        <h3>💡 Recommendations</h3>
+        <div class="card" style="padding: 16px; margin-bottom: 16px;">
+            {{ report.recommendations }}
+        </div>
+        {% endif %}
+        
+        {% if report.talking_points %}
+        <h3>🗣️ Talking Points</h3>
+        <ul>
+            {% for point in report.talking_points %}
+            <li>{{ point }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="form-section">
+    {% if students %}
+    <p>Select a student to generate ARC meeting preparation materials including progress summaries, goal recommendations, and talking points.</p>
+    <form method="POST" action="{{ url_for('iep_arc_prep') }}">
+        <div class="form-group">
+            <label for="student_id">Select Student</label>
+            <select name="student_id" id="student_id" class="form-control">
+                {% for student in students %}
+                <option value="{{ student.id }}">{{ student.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-large" style="margin-top: 16px;">Generate ARC Prep</button>
+    </form>
+    {% else %}
+    <p class="help-text"><em>Add students first to generate ARC meeting prep.</em></p>
+    <a href="{{ url_for('student_add') }}" class="btn btn-secondary">+ Add Students</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<div style="margin-top: 24px;">
+    <a href="{{ url_for('iep') }}" class="btn btn-secondary">← Back to IEPs</a>
+</div>
+{% endblock %}

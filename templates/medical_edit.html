@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Edit Medical Info - SPARK{% endblock %}
+{% block body_class %}medical-edit-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🏥 Medical & Safety Info: {{ student.name }}</h1>
+    <p class="subtitle">Edit medical, safety, and emergency information for this student</p>
+</div>
+
+<form method="POST" class="settings-form">
+    <div class="form-section">
+        <h2>⚠️ Allergies & Dietary Restrictions</h2>
+        <div class="form-group">
+            <label for="allergies">Allergies (one per line)</label>
+            <textarea id="allergies" name="allergies" rows="3" class="form-control" placeholder="e.g. Peanuts&#10;Latex&#10;Bee stings">{{ medical.get('allergies', [])|join('\n') }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="dietary_restrictions">Dietary Restrictions</label>
+            <textarea id="dietary_restrictions" name="dietary_restrictions" rows="2" class="form-control" placeholder="e.g. Gluten-free, no dairy">{{ medical.get('dietary_restrictions', '') }}</textarea>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>💊 Medications</h2>
+        <p class="help-text">List all medications administered at school</p>
+        <div id="medications-list">
+            {% for med in medical.get('medications', []) %}
+            <div class="card" style="padding: 12px; margin-bottom: 8px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Medication Name</label>
+                        <input type="text" name="med_name[]" value="{{ med.get('name', '') }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosage</label>
+                        <input type="text" name="med_dosage[]" value="{{ med.get('dosage', '') }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Schedule</label>
+                        <input type="text" name="med_schedule[]" value="{{ med.get('schedule', '') }}" class="form-control" placeholder="e.g. 11:30 AM daily">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="card" style="padding: 12px; margin-bottom: 8px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Medication Name</label>
+                        <input type="text" name="med_name[]" class="form-control" placeholder="Add new...">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosage</label>
+                        <input type="text" name="med_dosage[]" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Schedule</label>
+                        <input type="text" name="med_schedule[]" class="form-control" placeholder="e.g. 11:30 AM daily">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>🧠 Seizure Protocol</h2>
+        <div class="form-group">
+            <label for="seizure_protocol">Seizure response instructions (leave blank if N/A)</label>
+            <textarea id="seizure_protocol" name="seizure_protocol" rows="4" class="form-control" placeholder="e.g. Time the seizure. Clear area. Do not restrain. Call nurse if >2 min. Notify parent after.">{{ medical.get('seizure_protocol', '') }}</textarea>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>🚪 Elopement Risk</h2>
+        <div class="form-group">
+            <label>Elopement Risk?</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="elopement_risk" value="yes" {{ 'checked' if medical.get('elopement_risk') }}> Yes
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="elopement_risk" value="no" {{ 'checked' if not medical.get('elopement_risk') }}> No
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="elopement_response">Elopement Response Plan</label>
+            <textarea id="elopement_response" name="elopement_response" rows="3" class="form-control" placeholder="e.g. Do NOT chase. Block exits calmly. Radio front office. Student typically goes to [location].">{{ medical.get('elopement_response', '') }}</textarea>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>🤲 Physical Handling & Sensory</h2>
+        <div class="form-group">
+            <label for="physical_handling">Physical Handling Notes</label>
+            <textarea id="physical_handling" name="physical_handling" rows="3" class="form-control" placeholder="e.g. No hand-over-hand without verbal cue first. Sensitive to touch on arms.">{{ medical.get('physical_handling', '') }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="sensory_sensitivities">Sensory Sensitivities</label>
+            <textarea id="sensory_sensitivities" name="sensory_sensitivities" rows="3" class="form-control" placeholder="e.g. Covers ears with loud noises. Avoids fluorescent lights. Seeks deep pressure.">{{ medical.get('sensory_sensitivities', '') }}</textarea>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h2>📞 Emergency Contacts</h2>
+        <div id="contacts-list">
+            {% for contact in medical.get('emergency_contacts', []) %}
+            <div class="card" style="padding: 12px; margin-bottom: 8px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="contact_name[]" value="{{ contact.get('name', '') }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" name="contact_phone[]" value="{{ contact.get('phone', '') }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Relationship</label>
+                        <input type="text" name="contact_relationship[]" value="{{ contact.get('relationship', '') }}" class="form-control">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="card" style="padding: 12px; margin-bottom: 8px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="contact_name[]" class="form-control" placeholder="Add new...">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" name="contact_phone[]" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Relationship</label>
+                        <input type="text" name="contact_relationship[]" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">💾 Save Medical Info</button>
+        <a href="{{ url_for('medical_safety') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Safety Sheet - SPARK{% endblock %}
+{% block body_class %}safety-print-page{% endblock %}
+
+{% block extra_head %}
+<style>
+@media print {
+    .sidebar, .page-header .subtitle, .no-print, nav { display: none !important; }
+    .main-content { margin: 0 !important; padding: 0 !important; }
+    .safety-sheet { border: 2px solid #333 !important; page-break-inside: avoid; }
+}
+.safety-sheet {
+    border: 2px solid #d13212;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 700px;
+    margin: 0 auto;
+}
+.safety-header {
+    text-align: center;
+    border-bottom: 2px solid #d13212;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+.safety-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eee;
+}
+.safety-section h3 {
+    font-size: 16px;
+    color: #d13212;
+    margin-bottom: 8px;
+}
+.safety-section p {
+    font-size: 14px;
+    line-height: 1.6;
+}
+.contact-row {
+    display: flex;
+    gap: 24px;
+    padding: 4px 0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🖨️ Safety Sheet</h1>
+    <p class="subtitle">Print-ready medical and safety information</p>
+</div>
+
+<div class="no-print" style="margin-bottom: 16px;">
+    <button onclick="window.print()" class="btn btn-primary">🖨️ Print This Sheet</button>
+    <a href="{{ url_for('medical_safety') }}" class="btn btn-secondary">← Back</a>
+</div>
+
+{% if sheet %}
+<div class="safety-sheet">
+    <div class="safety-header">
+        <h2 style="margin: 0; font-size: 24px;">⚠️ MEDICAL & SAFETY SHEET</h2>
+        <h2 style="margin: 8px 0 0 0; font-size: 28px;">{{ sheet.student_name }}</h2>
+        {% if sheet.last_updated %}
+        <p class="help-text">Last updated: {{ sheet.last_updated }}</p>
+        {% endif %}
+    </div>
+
+    {% if sheet.allergies %}
+    <div class="safety-section">
+        <h3>🚨 ALLERGIES</h3>
+        <ul style="font-size: 16px; font-weight: bold; color: #d13212;">
+            {% for allergy in sheet.allergies %}
+            <li>{{ allergy }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if sheet.dietary_restrictions %}
+    <div class="safety-section">
+        <h3>🍽️ Dietary Restrictions</h3>
+        <p>{{ sheet.dietary_restrictions }}</p>
+    </div>
+    {% endif %}
+
+    {% if sheet.medications %}
+    <div class="safety-section">
+        <h3>💊 Medications</h3>
+        {% for med in sheet.medications %}
+        <p><strong>{{ med.name }}</strong> — {{ med.dosage }} — {{ med.schedule }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if sheet.seizure_protocol %}
+    <div class="safety-section">
+        <h3>🧠 Seizure Protocol</h3>
+        <p style="font-size: 15px;">{{ sheet.seizure_protocol }}</p>
+    </div>
+    {% endif %}
+
+    {% if sheet.elopement_risk %}
+    <div class="safety-section">
+        <h3>🚪 ELOPEMENT RISK</h3>
+        <p style="font-size: 15px; font-weight: bold;">{{ sheet.elopement_response }}</p>
+    </div>
+    {% endif %}
+
+    {% if sheet.physical_handling %}
+    <div class="safety-section">
+        <h3>🤲 Physical Handling</h3>
+        <p>{{ sheet.physical_handling }}</p>
+    </div>
+    {% endif %}
+
+    {% if sheet.sensory_sensitivities %}
+    <div class="safety-section">
+        <h3>🧸 Sensory Sensitivities</h3>
+        <p>{{ sheet.sensory_sensitivities }}</p>
+    </div>
+    {% endif %}
+
+    {% if sheet.emergency_contacts %}
+    <div class="safety-section">
+        <h3>📞 Emergency Contacts</h3>
+        {% for contact in sheet.emergency_contacts %}
+        <div class="contact-row">
+            <strong>{{ contact.name }}</strong>
+            <span>{{ contact.phone }}</span>
+            <span>({{ contact.relationship }})</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="help-text">No medical data available for this student.</p>
+{% endif %}
+{% endblock %}

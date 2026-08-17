@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Goal Bank - SPARK{% endblock %}
+{% block body_class %}iep-goals-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📚 IEP Goal Bank</h1>
+    <p class="subtitle">Browse pre-built goals aligned to EFASAA, KAS, and KYECS standards</p>
+</div>
+
+<div class="form-section" style="margin-bottom: 24px;">
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+        <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="domain-select">Filter by Domain</label>
+            <form method="GET" action="{{ url_for('iep_goals') }}" id="domain-form">
+                <select name="domain" id="domain-select" class="form-control" onchange="document.getElementById('domain-form').submit();">
+                    <option value="">-- All Domains --</option>
+                    {% for d in domains %}
+                    <option value="{{ d }}" {% if d == domain %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="goal-search">Search Goals</label>
+            <input type="text" id="goal-search" class="form-control" placeholder="Type to search..." oninput="searchGoals(this.value)">
+        </div>
+    </div>
+</div>
+
+<div id="search-results" style="display: none;">
+    <h3>🔍 Search Results</h3>
+    <div id="search-results-list"></div>
+</div>
+
+<div id="domain-goals">
+{% if domain and goals %}
+    <h2>Goals for: {{ domain }}</h2>
+    {% for subdomain, goal_list in goals.items() if goal_list %}
+    <div class="form-section" style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px; color: #4A90A4;">{{ subdomain }}</h3>
+        {% for goal in goal_list %}
+        <div class="card" style="padding: 12px; margin-bottom: 8px;">
+            <p style="margin: 0;">{{ goal.text }}</p>
+            {% if goal.standard_alignment %}
+            <p class="help-text" style="margin: 4px 0 0 0; font-size: 12px;">📐 {{ goal.standard_alignment }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+{% elif domain %}
+    <p class="help-text">No goals found for "{{ domain }}".</p>
+{% else %}
+    <p class="help-text">Select a domain above to browse goals, or use the search box to find specific goals.</p>
+{% endif %}
+</div>
+
+<div style="margin-top: 24px;">
+    <a href="{{ url_for('iep') }}" class="btn btn-secondary">← Back to IEPs</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var searchTimeout = null;
+
+function searchGoals(query) {
+    clearTimeout(searchTimeout);
+    var resultsDiv = document.getElementById('search-results');
+    var resultsList = document.getElementById('search-results-list');
+    var domainGoals = document.getElementById('domain-goals');
+
+    if (query.length < 2) {
+        resultsDiv.style.display = 'none';
+        domainGoals.style.display = 'block';
+        return;
+    }
+
+    searchTimeout = setTimeout(function() {
+        fetch('/iep/goals/search?q=' + encodeURIComponent(query))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.results && data.results.length > 0) {
+                var html = '';
+                data.results.forEach(function(goal) {
+                    html += '<div class="card" style="padding: 12px; margin-bottom: 8px;">';
+                    html += '<p style="margin: 0;">' + goal.text + '</p>';
+                    html += '<p class="help-text" style="margin: 4px 0 0 0; font-size: 12px;">';
+                    html += '📁 ' + (goal.domain || '') + ' → ' + (goal.subdomain || '');
+                    if (goal.standard_alignment) {
+                        html += ' | 📐 ' + goal.standard_alignment;
+                    }
+                    html += '</p></div>';
+                });
+                resultsList.innerHTML = html;
+            } else {
+                resultsList.innerHTML = '<p class="help-text">No goals matching "' + query + '"</p>';
+            }
+            resultsDiv.style.display = 'block';
+            domainGoals.style.display = 'none';
+        });
+    }, 300);
+}
+</script>
+{% endblock %}
