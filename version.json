@@ -1,22 +1,5 @@
 {
-  "version": "2.1.0",
-  "schema_version": 2,
-  "app_name": "SPARK",
-  "full_name": "Special Planning for All Remarkable Kids",
-  "installed_at": "2026-08-15T22:00:00",
-  "updated_at": "2026-08-17T14:58:00",
-  "last_commit_sha": "",
-  "changelog": {
-    "2.1.0": {
-      "date": "2026-08-17",
-      "features": [
-        "Para Notes: Aide instructions embedded in each lesson plan activity",
-        "Repeat Last Week: One-click plan carry-forward for routine consistency",
-        "Break/Regulation Activity Bank: 28 curated sensory/motor break activities",
-        "Autism Fast Facts: KDE data resource for parent communications",
-        "Manifestation Determination: HB 538 MDR checklist with auto-outcome",
-        "PBIS Behavior Categories: Structured behavior tracking in data collection"
-      ]
-    }
-  }
+  "version": "2.2.1",
+  "release_date": "2026-08-17",
+  "min_python": "3.8"
 }

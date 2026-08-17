@@ -45,6 +45,24 @@ from modules.break_activities import (
 from modules.manifestation_determination import (
     get_checklist, get_hb538_summary, evaluate_determination, get_timeline_info
 )
+from modules.sub_plans import generate_sub_plan, format_sub_plan_for_print
+from modules.medical_safety import (
+    get_medical_data, save_medical_data, generate_safety_sheet,
+    get_all_medical_alerts, get_blank_medical_record
+)
+from modules.aide_training import generate_aide_packet, format_packet_for_print
+from modules.visual_schedule import (
+    get_saved_schedules, get_schedule, save_schedule, delete_schedule,
+    get_default_schedule, get_available_icons, format_schedule_for_print as format_vs_for_print
+)
+from modules.related_services import (
+    get_student_services, save_student_services, add_service, log_session,
+    get_monthly_summary, get_dashboard_data, get_service_types, SERVICE_TYPES
+)
+from modules.compliance_calendar import (
+    get_compliance_dashboard, get_calendar_events, get_upcoming_deadlines,
+    add_custom_event, remove_custom_event, get_all_custom_events
+)
 
 
 app = Flask(__name__)
@@ -930,6 +948,258 @@ def open_browser():
     import time
     time.sleep(1.5)
     webbrowser.open('http://127.0.0.1:5000')
+
+
+# ============================================================
+# SUB PLANS ROUTES
+# ============================================================
+
+@app.route('/sub-plans')
+def sub_plans():
+    return render_template('sub_plans.html', plan=None)
+
+
+@app.route('/sub-plans/generate', methods=['POST'])
+def generate_sub_plan_route():
+    students = get_all_students()
+    config = get_config()
+    plan = generate_sub_plan(students, config)
+    return render_template('sub_plans.html', plan=plan)
+
+
+# ============================================================
+# MEDICAL/SAFETY ROUTES
+# ============================================================
+
+@app.route('/medical')
+def medical_safety():
+    students = get_all_students()
+    alerts = get_all_medical_alerts(students)
+    return render_template('medical_safety.html', students=students, alerts=alerts)
+
+
+@app.route('/medical/edit/<student_id>', methods=['GET', 'POST'])
+def edit_medical(student_id):
+    if request.method == 'POST':
+        data = {
+            "allergies": request.form.get("allergies", ""),
+            "medications": json.loads(request.form.get("medications_json", "[]")),
+            "seizure_protocol": {
+                "has_seizures": request.form.get("has_seizures") == "yes",
+                "type": request.form.get("seizure_type", ""),
+                "protocol": request.form.get("seizure_protocol", ""),
+                "rescue_med": request.form.get("rescue_med", ""),
+                "rescue_med_location": request.form.get("rescue_med_location", ""),
+            },
+            "elopement_risk": {
+                "is_risk": request.form.get("elopement_risk") == "yes",
+                "protocol": request.form.get("elopement_protocol", ""),
+                "triggers": request.form.get("elopement_triggers", ""),
+            },
+            "emergency_contacts": [
+                {"name": request.form.get("contact1_name", ""), "relationship": request.form.get("contact1_rel", ""), "phone": request.form.get("contact1_phone", ""), "is_primary": True},
+                {"name": request.form.get("contact2_name", ""), "relationship": request.form.get("contact2_rel", ""), "phone": request.form.get("contact2_phone", ""), "is_primary": False},
+            ],
+            "hospital_preference": request.form.get("hospital", ""),
+            "doctor_name": request.form.get("doctor_name", ""),
+            "doctor_phone": request.form.get("doctor_phone", ""),
+            "dietary_restrictions": request.form.get("dietary", ""),
+            "sensory_triggers": request.form.get("sensory_triggers", ""),
+            "physical_limitations": request.form.get("physical", ""),
+            "toileting_needs": request.form.get("toileting", ""),
+            "additional_notes": request.form.get("notes", ""),
+        }
+        save_medical_data(student_id, data)
+        flash("Medical information saved!", "success")
+        return redirect(url_for('medical_safety'))
+    
+    student = get_student(student_id)
+    medical_data = get_medical_data(student_id)
+    return render_template('medical_edit.html', student=student, medical=medical_data)
+
+
+@app.route('/medical/print/<student_id>')
+def print_safety_sheet(student_id):
+    student = get_student(student_id)
+    medical_data = get_medical_data(student_id)
+    sheet = generate_safety_sheet(student, medical_data)
+    return render_template('safety_sheet_print.html', sheet=sheet)
+
+
+# ============================================================
+# AIDE TRAINING ROUTES
+# ============================================================
+
+@app.route('/aide-training')
+def aide_training():
+    return render_template('aide_training.html', packet=None)
+
+
+@app.route('/aide-training/generate', methods=['POST'])
+def generate_aide_packet_route():
+    students = get_all_students()
+    config = get_config()
+    packet = generate_aide_packet(students, config)
+    return render_template('aide_training.html', packet=packet)
+
+
+# ============================================================
+# VISUAL SCHEDULE ROUTES
+# ============================================================
+
+@app.route('/visual-schedules')
+def visual_schedules():
+    saved = get_saved_schedules()
+    default = get_default_schedule()
+    icons = get_available_icons()
+    return render_template('visual_schedule.html', saved_schedules=saved, default_schedule=default, icons=icons)
+
+
+@app.route('/visual-schedules/save', methods=['POST'])
+def save_visual_schedule():
+    name = request.form.get('name', 'Untitled Schedule')
+    schedule_type = request.form.get('type', 'class')
+    
+    activities = []
+    names = request.form.getlist('activity_name[]')
+    durations = request.form.getlist('activity_duration[]')
+    transitions = request.form.getlist('activity_transition[]')
+    icons = request.form.getlist('activity_icon[]')
+    
+    for i in range(len(names)):
+        if names[i].strip():
+            activities.append({
+                "activity": names[i].strip(),
+                "duration": int(durations[i]) if i < len(durations) and durations[i] else 15,
+                "transition_cue": transitions[i].strip() if i < len(transitions) else "",
+                "icon": icons[i] if i < len(icons) else "transition",
+            })
+    
+    save_schedule(name, activities, schedule_type)
+    flash(f"Schedule \'{name}\' saved!", "success")
+    return redirect(url_for('visual_schedules'))
+
+
+@app.route('/visual-schedules/print/<filename>')
+def print_visual_schedule(filename):
+    schedule = get_schedule(filename)
+    if not schedule:
+        flash("Schedule not found", "error")
+        return redirect(url_for('visual_schedules'))
+    icons = get_available_icons()
+    formatted = format_vs_for_print(schedule)
+    return render_template('visual_schedule_print.html', schedule=schedule, formatted=formatted, icons=icons)
+
+
+@app.route('/visual-schedules/delete/<filename>')
+def delete_visual_schedule(filename):
+    delete_schedule(filename)
+    flash("Schedule deleted", "success")
+    return redirect(url_for('visual_schedules'))
+
+
+# ============================================================
+# RELATED SERVICES ROUTES
+# ============================================================
+
+@app.route('/services')
+def services_dashboard():
+    students = get_all_students()
+    dashboard = get_dashboard_data(students)
+    return render_template('services_dashboard.html', dashboard=dashboard)
+
+
+@app.route('/services/add', methods=['GET', 'POST'])
+def add_service_page():
+    if request.method == 'POST':
+        student_id = request.form.get('student_id')
+        add_service(
+            student_id=student_id,
+            service_type=request.form.get('service_type', ''),
+            provider_name=request.form.get('provider', ''),
+            frequency=request.form.get('frequency', ''),
+            minutes_per_session=int(request.form.get('minutes', 30)),
+            notes=request.form.get('notes', ''),
+        )
+        flash("Service added!", "success")
+        return redirect(url_for('services_dashboard'))
+    
+    students = get_all_students()
+    return render_template('services_add.html', students=students, service_types=SERVICE_TYPES)
+
+
+@app.route('/services/log/<student_id>', methods=['GET', 'POST'])
+def log_service_session(student_id):
+    if request.method == 'POST':
+        log_session(
+            student_id=student_id,
+            service_id=request.form.get('service_id', ''),
+            date=request.form.get('date', datetime.now().strftime('%Y-%m-%d')),
+            minutes_delivered=int(request.form.get('minutes', 0)),
+            notes=request.form.get('notes', ''),
+        )
+        flash("Session logged!", "success")
+        return redirect(url_for('services_dashboard'))
+    
+    student = get_student(student_id)
+    services_data = get_student_services(student_id)
+    return render_template('services_log.html', student=student, services=services_data.get('services', []))
+
+
+# ============================================================
+# COMPLIANCE CALENDAR ROUTES
+# ============================================================
+
+@app.route('/compliance')
+def compliance_calendar():
+    students = get_all_students()
+    dashboard = get_compliance_dashboard(students)
+    return render_template('compliance_calendar.html',
+                         dashboard=dashboard,
+                         students=students)
+
+
+@app.route('/compliance/add', methods=['POST'])
+def compliance_add_event():
+    title = request.form.get('title', '').strip()
+    deadline = request.form.get('deadline', '').strip()
+    student_id = request.form.get('student_id', '')
+    notes = request.form.get('notes', '')
+    recurring = request.form.get('recurring') == 'yes'
+
+    if not title or not deadline:
+        flash('Please provide a title and date.', 'error')
+        return redirect(url_for('compliance_calendar'))
+
+    # Get student name if a student was selected
+    student_name = 'All Students'
+    if student_id:
+        student = get_student(student_id)
+        if student:
+            student_name = student.get('name', 'Unknown')
+
+    add_custom_event({
+        'title': title,
+        'deadline': deadline,
+        'student_id': student_id,
+        'student_name': student_name,
+        'recurring': recurring,
+        'notes': notes,
+    })
+    flash(f'Deadline "{title}" added! 📋', 'success')
+    return redirect(url_for('compliance_calendar'))
+
+
+@app.route('/compliance/delete/<event_id>', methods=['POST'])
+def compliance_delete_event(event_id):
+    removed = remove_custom_event(event_id)
+    if removed:
+        flash('Deadline removed.', 'info')
+    else:
+        flash('Event not found.', 'error')
+    return redirect(url_for('compliance_calendar'))
+
+
 
 
 if __name__ == '__main__':
