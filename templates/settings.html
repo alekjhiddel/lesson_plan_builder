@@ -82,14 +82,14 @@
     <h2>🔄 Software Updates</h2>
     <p class="help-text">Check if there's a newer version of SPARK available.</p>
     <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
-        <button onclick="checkUpdates()" class="btn btn-secondary" id="check-update-btn">
+        <button class="btn btn-secondary" id="check-update-btn">
             🔄 Check for Updates
         </button>
         <span id="update-status"></span>
     </div>
     <div id="update-details" style="display: none; margin-top: 16px;">
         <div id="update-changes" class="card" style="padding: 16px; background: #f8f9fa;"></div>
-        <button onclick="applyUpdate()" class="btn btn-primary" id="apply-update-btn" style="margin-top: 12px;">
+        <button class="btn btn-primary" id="apply-update-btn" style="margin-top: 12px;">
             ⬇️ Download & Install Update
         </button>
     </div>
@@ -199,6 +199,11 @@ function applyUpdate() {
         btn.innerHTML = '⬇️ Download & Install Update';
     });
 }
+
+// Attach event listeners (Safari blocks inline onclick in some configs)
+document.getElementById('check-update-btn').addEventListener('click', checkUpdates);
+var applyBtn = document.getElementById('apply-update-btn');
+if (applyBtn) { applyBtn.addEventListener('click', applyUpdate); }
 </script>
 {% endblock %}
 
