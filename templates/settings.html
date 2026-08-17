@@ -81,18 +81,33 @@
 <div class="form-section" style="margin-top: 24px;">
     <h2>🔄 Software Updates</h2>
     <p class="help-text">Check if there's a newer version of SPARK available.</p>
-    <div style="display: flex; gap: 12px; align-items: center; margin-top: 12px;">
-        <button class="btn btn-secondary" id="check-update-btn">
+    <div style="margin-top: 12px;">
+        <a href="/check-updates-page" class="btn btn-primary" style="text-decoration: none; display: inline-block;">
             🔄 Check for Updates
-        </button>
-        <span id="update-status"></span>
+        </a>
     </div>
-    <div id="update-details" style="display: none; margin-top: 16px;">
-        <div id="update-changes" class="card" style="padding: 16px; background: #f8f9fa;"></div>
-        <button class="btn btn-primary" id="apply-update-btn" style="margin-top: 12px;">
-            ⬇️ Download & Install Update
-        </button>
+    {% if update_result %}
+    <div style="margin-top: 16px; padding: 16px; border-radius: 8px; background: #f8f9fa;">
+        {% if update_result.error %}
+        <p style="color: #e57373;">❌ {{ update_result.error }}</p>
+        {% elif update_result.available %}
+        <p style="color: #4A90A4; font-weight: 600;">✨ {{ update_result.message }}</p>
+        {% if update_result.changes %}
+        <ul>
+            {% for change in update_result.changes %}
+            <li>{{ change }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <form method="POST" action="/apply-update" style="margin-top: 12px;"
+              onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Updating...';">
+            <button type="submit" class="btn btn-primary">⬇️ Download & Install Update</button>
+        </form>
+        {% else %}
+        <p style="color: #4CAF50; font-weight: 600;">✅ {{ update_result.message }}</p>
+        {% endif %}
     </div>
+    {% endif %}
 </div>
 
 
@@ -128,83 +143,7 @@
 </div>
 
 
-<script>
-function checkUpdates() {
-    var btn = document.getElementById('check-update-btn');
-    var status = document.getElementById('update-status');
-    var details = document.getElementById('update-details');
-    
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Checking...';
-    status.innerHTML = '';
-    details.style.display = 'none';
-    
-    fetch('/check-updates')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.error) {
-            status.innerHTML = '<span style="color: #e57373;">❌ ' + data.error + '</span>';
-        } else if (data.available) {
-            status.innerHTML = '<span style="color: #4A90A4; font-weight: 600;">✨ Update available!</span>';
-            var changesHtml = '<strong>What\'s new:</strong><ul>';
-            if (data.changes) {
-                data.changes.forEach(function(c) { changesHtml += '<li>' + c + '</li>'; });
-            }
-            changesHtml += '</ul>';
-            document.getElementById('update-changes').innerHTML = changesHtml;
-            details.style.display = 'block';
-        } else {
-            status.innerHTML = '<span style="color: #4CAF50;">✅ You\'re up to date!</span>';
-        }
-    })
-    .catch(function(err) {
-        status.innerHTML = '<span style="color: #e57373;">❌ Could not check. Are you online?</span>';
-    })
-    .finally(function() {
-        btn.disabled = false;
-        btn.innerHTML = '🔄 Check for Updates';
-    });
-}
 
-function applyUpdate() {
-    var btn = document.getElementById('apply-update-btn');
-    var status = document.getElementById('update-status');
-    
-    if (!confirm('This will update SPARK to the latest version. Your student data will be preserved. Continue?')) {
-        return;
-    }
-    
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Downloading & installing...';
-    status.innerHTML = '<span style="color: #4A90A4;">Updating... this takes about 15 seconds</span>';
-    
-    fetch('/apply-update', {method: 'POST'})
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            status.innerHTML = '<span style="color: #4CAF50; font-weight: 600;">✅ ' + data.message + '</span>';
-            btn.innerHTML = '✅ Updated! Restart the app.';
-            setTimeout(function() {
-                alert('Update complete! Close this window and double-click start.command again to restart with the new version.');
-            }, 500);
-        } else {
-            status.innerHTML = '<span style="color: #e57373;">❌ ' + data.error + '</span>';
-            btn.disabled = false;
-            btn.innerHTML = '⬇️ Download & Install Update';
-        }
-    })
-    .catch(function(err) {
-        status.innerHTML = '<span style="color: #e57373;">❌ Update failed. Try again or download manually from GitHub.</span>';
-        btn.disabled = false;
-        btn.innerHTML = '⬇️ Download & Install Update';
-    });
-}
-
-// Attach event listeners (Safari blocks inline onclick in some configs)
-document.getElementById('check-update-btn').addEventListener('click', checkUpdates);
-var applyBtn = document.getElementById('apply-update-btn');
-if (applyBtn) { applyBtn.addEventListener('click', applyUpdate); }
-</script>
 {% endblock %}
 
 
