@@ -38,6 +38,42 @@ VALID_METHODS = [
 DEFAULT_MASTERY_CONSECUTIVE = 3  # sessions meeting criteria
 DEFAULT_MASTERY_THRESHOLD = 80  # percent or equivalent
 
+# PBIS Behavior Categories (v2.1)
+PBIS_CATEGORIES = {
+    # Expected Behaviors (Positive - track increases)
+    'expected_social': {'label': 'Expected: Social interaction', 'direction': 'increase', 'color': '#4caf50'},
+    'expected_communication': {'label': 'Expected: Communication attempt', 'direction': 'increase', 'color': '#66bb6a'},
+    'expected_task': {'label': 'Expected: Task engagement', 'direction': 'increase', 'color': '#81c784'},
+    'expected_transition': {'label': 'Expected: Smooth transition', 'direction': 'increase', 'color': '#a5d6a7'},
+    'expected_self_reg': {'label': 'Expected: Self-regulation strategy used', 'direction': 'increase', 'color': '#c8e6c9'},
+    # Unexpected Behaviors (Target for reduction)
+    'unexpected_aggression': {'label': 'Unexpected: Physical aggression', 'direction': 'decrease', 'color': '#f44336'},
+    'unexpected_self_injury': {'label': 'Unexpected: Self-injurious behavior', 'direction': 'decrease', 'color': '#e53935'},
+    'unexpected_elopement': {'label': 'Unexpected: Elopement/leaving area', 'direction': 'decrease', 'color': '#ef5350'},
+    'unexpected_disruption': {'label': 'Unexpected: Disruption/property destruction', 'direction': 'decrease', 'color': '#e57373'},
+    'unexpected_noncompliance': {'label': 'Unexpected: Non-compliance/refusal', 'direction': 'decrease', 'color': '#ef9a9a'},
+    'unexpected_stereotypy': {'label': 'Unexpected: Stereotypy (interfering)', 'direction': 'decrease', 'color': '#ffcdd2'},
+    # Replacement Behaviors (Teaching targets - track increases)
+    'replacement_request': {'label': 'Replacement: Appropriate request (mand)', 'direction': 'increase', 'color': '#2196f3'},
+    'replacement_wait': {'label': 'Replacement: Waiting/tolerance', 'direction': 'increase', 'color': '#42a5f5'},
+    'replacement_help': {'label': 'Replacement: Asking for help', 'direction': 'increase', 'color': '#64b5f6'},
+    'replacement_break': {'label': 'Replacement: Requesting break', 'direction': 'increase', 'color': '#90caf9'},
+    'replacement_coping': {'label': 'Replacement: Using coping strategy', 'direction': 'increase', 'color': '#bbdefb'},
+}
+
+
+def get_pbis_categories():
+    """Return all PBIS behavior categories."""
+    return PBIS_CATEGORIES
+
+
+def get_pbis_category_label(category_key):
+    """Get the display label for a PBIS category."""
+    cat = PBIS_CATEGORIES.get(category_key)
+    return cat['label'] if cat else category_key
+
+
+
 
 def _ensure_data_file():
     """Create data directory and file if they don't exist."""
@@ -163,7 +199,7 @@ def _normalize_value(value, method):
         return {'raw_value': value}
 
 
-def add_data_point(student_id, goal_id, date, value, method, notes=""):
+def add_data_point(student_id, goal_id, date, value, method, notes="", behavior_category=''):
     """
     Record a single data point for a student's IEP goal.
 

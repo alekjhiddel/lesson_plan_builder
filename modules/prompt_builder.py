@@ -25,7 +25,7 @@ class PromptBuilder:
     
     def build_prompt(self, students, config, plan_type='weekly', 
                      month_override=None, custom_theme='', additional_notes='',
-                     week_of=None):
+                     week_of=None, para_notes_style='detailed'):
         """
         Build a complete prompt for ChatGPT.
         Returns anonymized prompt text ready to copy/send.
