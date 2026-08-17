@@ -141,11 +141,14 @@ def format_sub_plan_for_print(plan):
         lines.append(f"  Communication: {s['communication_mode']}")
         lines.append(f"  → {s['communication_notes']}")
         if s["key_needs"]:
-            lines.append(f"  Needs: {\'; \'.join(s['key_needs'])}")
+            needs_str = '; '.join(s['key_needs'])
+            lines.append(f"  Needs: {needs_str}")
         if s["reinforcers"]:
-            lines.append(f"  Reinforcers: {\', \'.join(s['reinforcers'])}")
+            reinf_str = ', '.join(s['reinforcers'])
+            lines.append(f"  Reinforcers: {reinf_str}")
         if s["behavior_strategies"]:
-            lines.append(f"  De-escalation: {\'; \'.join(s['behavior_strategies'])}")
+            strat_str = '; '.join(s['behavior_strategies'])
+            lines.append(f"  De-escalation: {strat_str}")
         if s["medical_alerts"] and s["medical_alerts"] != "None noted":
             lines.append(f"  ⚠️ MEDICAL: {s['medical_alerts']}")
     
