@@ -59,12 +59,12 @@
                 <span class="section-check me-2" id="check-{{ section_key }}">⬜</span>
                 {{ section.title }}
             </h5>
-            <span class="badge bg-secondary" id="count-{{ section_key }}">0/{{ section.items|length }}</span>
+            <span class="badge bg-secondary" id="count-{{ section_key }}">0/{{ section['items']|length }}</span>
         </div>
         <div id="section-{{ section_key }}" class="collapse show">
             <div class="card-body">
                 <p class="text-muted mb-3">{{ section.description }}</p>
-                {% for item in section.items %}
+                {% for item in section['items'] %}
                 <div class="form-check mb-2 p-2 rounded {% if item.required|default(false) %}border-start border-3 border-warning{% endif %}">
                     {% if item.type|default('') == 'yes_no' %}
                     <!-- Yes/No determination question -->
