@@ -13,6 +13,20 @@
 </div>
 {% endif %}
 
+<!-- Repeat Last Week -->
+<div class="form-section" style="background: #e8f5e9; border-left: 4px solid #4caf50; padding: 1rem 1.5rem; margin-bottom: 2rem; border-radius: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin: 0; color: #2e7d32;">🔄 Same Structure, New Week?</h3>
+            <p style="margin: 0.5rem 0 0; color: #555;">MSD students thrive on routine. Carry forward last week's plan with just a theme/material swap.</p>
+        </div>
+        <a href="{{ url_for('repeat_last_plan') }}" class="btn btn-success" style="white-space: nowrap;">
+            Repeat Last Week →
+        </a>
+    </div>
+</div>
+
+
 <form method="POST" class="generate-form">
     <div class="form-section">
         <h2>What would you like to generate?</h2>
@@ -85,6 +99,20 @@
             {% endfor %}
         </div>
         <p class="help-text">Names will be replaced with "Child 1", "Child 2", etc. before sending to ChatGPT</p>
+    </div>
+    
+
+    <div class="form-section">
+        <h2>Para Notes <span class="optional">(new! v2.1)</span></h2>
+        <p class="help-text">Include specific aide instructions for each activity. These print on the plan so aides know exactly what to do.</p>
+        <div class="form-group">
+            <label for="para_notes">Default aide instruction style</label>
+            <select name="para_notes_style" id="para_notes">
+                <option value="detailed">Detailed — step-by-step aide instructions per activity</option>
+                <option value="brief">Brief — objective + key prompt level only</option>
+                <option value="none">None — skip para notes this time</option>
+            </select>
+        </div>
     </div>
     
     <div class="form-actions">

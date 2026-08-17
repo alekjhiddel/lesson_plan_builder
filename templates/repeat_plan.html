@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Repeat Last Week — SPARK{% endblock %}
+{% block nav_lessons %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3">
+                <i class="bi bi-arrow-repeat me-2"></i>Repeat Last Week's Plan
+            </h1>
+            <p class="text-muted">
+                MSD students thrive on routine. Carry forward last week's structure — 
+                just update the theme and materials if needed.
+            </p>
+        </div>
+    </div>
+
+    {% if last_plan %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">✅ Found Last Plan</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Generated:</strong> {{ last_plan.generated_at[:10] if last_plan.generated_at else 'Unknown' }}</p>
+            <p><strong>Type:</strong> {{ last_plan.type|default('weekly')|title }}</p>
+            {% if last_plan.processed %}
+            <details>
+                <summary class="text-primary" style="cursor:pointer;">Preview last week's plan structure</summary>
+                <div class="mt-2 p-3 bg-light rounded" style="max-height: 300px; overflow-y: auto;">
+                    <pre style="white-space: pre-wrap; font-size: 0.85em;">{{ last_plan.processed[:2000] if last_plan.processed is string else 'Plan data available' }}</pre>
+                </div>
+            </details>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="POST" class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">What's changing this week?</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">New Theme (optional)</label>
+                <input type="text" name="new_theme" class="form-control" 
+                       placeholder="Leave blank to keep same theme">
+                <small class="text-muted">Only change if rotating to a new unit/theme</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Changes/Notes (optional)</label>
+                <textarea name="new_notes" class="form-control" rows="3"
+                          placeholder="e.g., Field trip Wednesday, new student starting Thursday, swap out sensory bin materials"></textarea>
+                <small class="text-muted">Note any scheduling changes, absences, or material swaps</small>
+            </div>
+            <div class="alert alert-info">
+                <strong>💡 What stays the same:</strong> Activity structure, centers rotation, aide assignments, 
+                transition schedule, sensory breaks — all the routines your students depend on.
+            </div>
+        </div>
+        <div class="card-footer text-end">
+            <a href="{{ url_for('generate') }}" class="btn btn-outline-secondary me-2">← Start Fresh Instead</a>
+            <button type="submit" class="btn btn-success btn-lg">🔄 Generate Repeated Plan</button>
+        </div>
+    </form>
+
+    {% else %}
+    <div class="alert alert-warning">
+        <h5>No Previous Plans Found</h5>
+        <p>You need to generate at least one plan before you can repeat it.</p>
+        <a href="{{ url_for('generate') }}" class="btn btn-primary">Generate Your First Plan →</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

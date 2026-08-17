@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Sub Plans - SPARK{% endblock %}
+{% block body_class %}sub-plans-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📋 Substitute Teacher Plans</h1>
+    <p class="subtitle">Generate a comprehensive plan for when you're absent</p>
+</div>
+
+{% if plan %}
+<div class="sub-plan-output">
+    <div class="plan-actions">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Print</button>
+        <a href="{{ url_for('sub_plans') }}" class="btn btn-secondary">← Generate New</a>
+    </div>
+    
+    <div class="print-section">
+        <h2>📌 Important Notes for Substitute</h2>
+        <ul class="important-notes">
+            {% for note in plan.general_notes %}
+            <li>{{ note }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div class="print-section">
+        <h2>👧 Student Quick Reference</h2>
+        {% for student in plan.student_summaries %}
+        <div class="student-card">
+            <h3>⭐ {{ student.name }}</h3>
+            <p><strong>Communication:</strong> {{ student.communication_mode }}</p>
+            <p class="comm-instructions">→ {{ student.communication_notes }}</p>
+            {% if student.key_needs %}
+            <p><strong>Key Needs:</strong> {{ student.key_needs | join('; ') }}</p>
+            {% endif %}
+            {% if student.reinforcers %}
+            <p><strong>Reinforcers:</strong> {{ student.reinforcers | join(', ') }}</p>
+            {% endif %}
+            {% if student.behavior_strategies %}
+            <p><strong>De-escalation:</strong> {{ student.behavior_strategies | join('; ') }}</p>
+            {% endif %}
+            {% if student.medical_alerts and student.medical_alerts != 'None noted' %}
+            <p class="medical-alert">⚠️ MEDICAL: {{ student.medical_alerts }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="print-section">
+        <h2>🔀 If/Then Quick Guide</h2>
+        <table class="if-then-table">
+            <thead><tr><th>IF...</th><th>THEN...</th></tr></thead>
+            <tbody>
+            {% for item in plan.if_then_guide %}
+            <tr>
+                <td>{{ item.if }}</td>
+                <td>{{ item.then }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="generate-section">
+    <p>This will generate a comprehensive substitute teacher plan using your current student profiles. The plan includes:</p>
+    <ul>
+        <li>Communication modes & instructions for each student</li>
+        <li>Key needs, reinforcers, and de-escalation strategies</li>
+        <li>Medical alerts</li>
+        <li>If/Then quick-reference guide for common situations</li>
+    </ul>
+    <form method="POST" action="{{ url_for('generate_sub_plan') }}">
+        <button type="submit" class="btn btn-primary btn-large">Generate Sub Plan</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

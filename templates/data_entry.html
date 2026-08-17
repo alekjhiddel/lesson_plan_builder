@@ -240,7 +240,41 @@
                             {% endif %}
 
                             <!-- Notes (all methods) -->
-                            <div class="mb-3">
+                            
+            <!-- PBIS Behavior Category (v2.1) -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    <i class="fas fa-brain me-1"></i>Behavior Category (PBIS)
+                </label>
+                <select class="form-select" name="behavior_category" id="behaviorCategory">
+                    <option value="">— Not a behavior goal (skip) —</option>
+                    <optgroup label="Expected Behaviors (Positive)">
+                        <option value="expected_social">Expected: Social interaction</option>
+                        <option value="expected_communication">Expected: Communication attempt</option>
+                        <option value="expected_task">Expected: Task engagement</option>
+                        <option value="expected_transition">Expected: Smooth transition</option>
+                        <option value="expected_self_reg">Expected: Self-regulation strategy used</option>
+                    </optgroup>
+                    <optgroup label="Unexpected Behaviors (Target for reduction)">
+                        <option value="unexpected_aggression">Unexpected: Physical aggression</option>
+                        <option value="unexpected_self_injury">Unexpected: Self-injurious behavior</option>
+                        <option value="unexpected_elopement">Unexpected: Elopement/leaving area</option>
+                        <option value="unexpected_disruption">Unexpected: Disruption/property destruction</option>
+                        <option value="unexpected_noncompliance">Unexpected: Non-compliance/refusal</option>
+                        <option value="unexpected_stereotypy">Unexpected: Stereotypy (interfering)</option>
+                    </optgroup>
+                    <optgroup label="Replacement Behaviors (Teaching targets)">
+                        <option value="replacement_request">Replacement: Appropriate request (mand)</option>
+                        <option value="replacement_wait">Replacement: Waiting/tolerance</option>
+                        <option value="replacement_help">Replacement: Asking for help</option>
+                        <option value="replacement_break">Replacement: Requesting break</option>
+                        <option value="replacement_coping">Replacement: Using coping strategy</option>
+                    </optgroup>
+                </select>
+                <small class="text-muted">Categorize by PBIS framework: Expected → Unexpected → Replacement</small>
+            </div>
+
+<div class="mb-3">
                                 <label class="form-label">Notes (optional)</label>
                                 <input type="text" class="form-control" name="notes" id="notes_{{ goal.id }}"
                                        placeholder="Observations, prompts used, behavior notes...">

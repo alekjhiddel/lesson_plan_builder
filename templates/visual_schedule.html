@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Visual Schedules - SPARK{% endblock %}
+{% block body_class %}visual-schedule-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🗓️ Visual Schedule Builder</h1>
+    <p class="subtitle">Create printable visual schedules for students or the whole class</p>
+</div>
+
+<div class="schedule-builder">
+    <div class="builder-controls">
+        <h3>Build a Schedule</h3>
+        <form method="POST" action="{{ url_for('save_visual_schedule') }}" id="scheduleForm">
+            <div class="form-group">
+                <label for="schedule_name">Schedule Name:</label>
+                <input type="text" id="schedule_name" name="name" placeholder="e.g., Monday Class Schedule" required>
+            </div>
+            <div class="form-group">
+                <label for="schedule_type">Type:</label>
+                <select id="schedule_type" name="type">
+                    <option value="class">Whole Class</option>
+                    <option value="individual">Individual Student</option>
+                </select>
+            </div>
+            
+            <h4>Activities (in order):</h4>
+            <div id="activitiesList">
+                {% for activity in default_schedule %}
+                <div class="activity-row">
+                    <span class="activity-icon">{{ icons.get(activity.icon, '▶️') }}</span>
+                    <input type="text" name="activity_name[]" value="{{ activity.activity }}" class="activity-input">
+                    <input type="number" name="activity_duration[]" value="{{ activity.duration }}" class="duration-input" min="5" max="120"> min
+                    <input type="text" name="activity_transition[]" value="{{ activity.transition_cue }}" class="transition-input" placeholder="Transition cue">
+                    <select name="activity_icon[]" class="icon-select">
+                        {% for key, icon in icons.items() %}
+                        <option value="{{ key }}" {% if key == activity.icon %}selected{% endif %}>{{ icon }} {{ key }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" class="btn btn-secondary" onclick="addActivity()">+ Add Activity</button>
+            <button type="submit" class="btn btn-primary">💾 Save Schedule</button>
+        </form>
+    </div>
+    
+    {% if saved_schedules %}
+    <div class="saved-schedules">
+        <h3>Saved Schedules</h3>
+        {% for schedule in saved_schedules %}
+        <div class="saved-schedule-card">
+            <h4>{{ schedule.name }}</h4>
+            <p>Type: {{ schedule.type }} | Created: {{ schedule.created }}</p>
+            <a href="{{ url_for('print_visual_schedule', filename=schedule.filename) }}" class="btn btn-small btn-primary">🖨️ Print</a>
+            <a href="{{ url_for('delete_visual_schedule', filename=schedule.filename) }}" class="btn btn-small btn-danger">Delete</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function addActivity() {
+    const list = document.getElementById('activitiesList');
+    const row = document.createElement('div');
+    row.className = 'activity-row';
+    row.innerHTML = `
+        <span class="activity-icon">▶️</span>
+        <input type="text" name="activity_name[]" class="activity-input" placeholder="Activity name">
+        <input type="number" name="activity_duration[]" class="duration-input" value="15" min="5" max="120"> min
+        <input type="text" name="activity_transition[]" class="transition-input" placeholder="Transition cue">
+        <select name="activity_icon[]" class="icon-select">
+            {% for key, icon in icons.items() %}<option value="{{ key }}">{{ icon }} {{ key }}</option>{% endfor %}
+        </select>
+        <button type="button" class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+    `;
+    list.appendChild(row);
+}
+</script>
+{% endblock %}

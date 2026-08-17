@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Autism Fast Facts — SPARK{% endblock %}
+{% block nav_comms %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3">
+                <i class="bi bi-info-circle me-2"></i>Kentucky Autism Fast Facts
+            </h1>
+            <p class="text-muted">
+                Official data from the Kentucky Department of Education (December 2024). 
+                Share with parents at conferences or include in communication packets.
+            </p>
+        </div>
+    </div>
+
+    <!-- Printable Section -->
+    <div class="card shadow-sm mb-4" id="printable-facts">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">🧩 {{ facts.title }}</h4>
+            <small>Source: {{ facts.source }}</small>
+        </div>
+        <div class="card-body">
+            <!-- Prevalence -->
+            <h5 class="mt-3 mb-3 text-primary">Prevalence</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="card bg-light h-100">
+                        <div class="card-body text-center">
+                            <div class="display-6 text-primary">1 in 36</div>
+                            <p class="small text-muted mb-0">Children identified with ASD nationally (CDC, 2023)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card bg-light h-100">
+                        <div class="card-body text-center">
+                            <div class="display-6 text-primary">~12,500</div>
+                            <p class="small text-muted mb-0">KY students (ages 3-21) served under autism eligibility</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card bg-light h-100">
+                        <div class="card-body text-center">
+                            <div class="display-6 text-primary">+38%</div>
+                            <p class="small text-muted mb-0">Growth in autism identification over past decade in KY</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card bg-light h-100">
+                        <div class="card-body text-center">
+                            <div class="display-6 text-primary">4:1</div>
+                            <p class="small text-muted mb-0">Boys identified vs. girls</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Educational Placement -->
+            <h5 class="mt-4 mb-3 text-primary">Educational Placement in Kentucky</h5>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Setting</th>
+                            <th>Percentage</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Regular Class 80%+</td>
+                            <td><strong>42%</strong></td>
+                            <td>Spend most of day in general education</td>
+                        </tr>
+                        <tr>
+                            <td>Regular Class 40-79%</td>
+                            <td><strong>18%</strong></td>
+                            <td>Split between general and special education</td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td>Regular Class &lt;40%</td>
+                            <td><strong>33%</strong></td>
+                            <td>Primarily in self-contained special education (like this classroom)</td>
+                        </tr>
+                        <tr>
+                            <td>Separate Settings</td>
+                            <td><strong>7%</strong></td>
+                            <td>Separate schools, residential, or homebound</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Key Facts for Parents -->
+            <h5 class="mt-4 mb-3 text-primary">Key Facts for Parents</h5>
+            <div class="row">
+                {% for fact in facts.key_facts_for_parents %}
+                <div class="col-md-6 mb-2">
+                    <div class="d-flex align-items-start">
+                        <span class="me-2 text-primary">✓</span>
+                        <span class="small">{{ fact }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Kentucky Resources -->
+            <h5 class="mt-4 mb-3 text-primary">Kentucky Resources</h5>
+            <div class="list-group">
+                {% for resource in facts.kentucky_resources %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ resource.name }}</span>
+                    <span class="badge bg-primary rounded-pill">{{ resource.url }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="text-center mb-4">
+        <button class="btn btn-primary btn-lg me-2" onclick="window.print()">
+            🖨️ Print for Parents
+        </button>
+        <a href="{{ url_for('communications') }}" class="btn btn-outline-secondary btn-lg">
+            ← Back to Communications
+        </a>
+    </div>
+</div>
+{% endblock %}

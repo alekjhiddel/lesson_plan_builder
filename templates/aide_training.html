@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Aide Training - SPARK{% endblock %}
+{% block body_class %}aide-training-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📖 Aide Training Packets</h1>
+    <p class="subtitle">Auto-generated training materials for new aides and floaters</p>
+</div>
+
+{% if packet %}
+<div class="training-output">
+    <div class="plan-actions">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Print Packet</button>
+        <a href="{{ url_for('aide_training') }}" class="btn btn-secondary">← Back</a>
+    </div>
+    
+    <div class="print-section">
+        <h2>✅ General Expectations</h2>
+        <ol class="expectations-list">
+            {% for exp in packet.general_expectations %}
+            <li>{{ exp }}</li>
+            {% endfor %}
+        </ol>
+    </div>
+    
+    <div class="print-section">
+        <h2>💬 Communication Modes in This Classroom</h2>
+        {% for mode, desc in packet.communication_primer.items() %}
+        <div class="comm-mode-card">
+            <h4>{{ mode }}</h4>
+            <p>{{ desc }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="print-section">
+        <h2>👧 Individual Student Profiles</h2>
+        {% for profile in packet.student_profiles %}
+        <div class="student-training-card">
+            <h3>⭐ {{ profile.name }}</h3>
+            
+            <h4>Communication</h4>
+            <p><strong>Mode:</strong> {{ profile.communication.mode }}</p>
+            <p><strong>How to use:</strong> {{ profile.communication.how_to_use }}</p>
+            
+            <h4>Behavior</h4>
+            <p><strong>Triggers:</strong> {{ profile.behavior.triggers }}</p>
+            <p><strong>De-escalation:</strong> {{ profile.behavior.deescalation }}</p>
+            <p class="never-do"><strong>NEVER:</strong> {{ profile.behavior.never_do }}</p>
+            
+            <h4>Reinforcers</h4>
+            <p>{{ profile.reinforcers.items | join(', ') }}</p>
+            <p><em>{{ profile.reinforcers.how_to_deliver }}</em></p>
+            
+            <h4>Physical & Sensory</h4>
+            <p><strong>Positioning:</strong> {{ profile.physical_needs.positioning }}</p>
+            <p><strong>Sensory needs:</strong> {{ profile.sensory.needs }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="generate-section">
+    <p>Generate a training packet that covers everything a new aide or floater needs to know about your students. Includes:</p>
+    <ul>
+        <li>General classroom expectations</li>
+        <li>Communication mode primer (AAC, PECS, Sign, etc.)</li>
+        <li>Per-student profiles: communication, behavior, reinforcers, physical/sensory needs</li>
+    </ul>
+    <form method="POST" action="{{ url_for('generate_aide_packet') }}">
+        <button type="submit" class="btn btn-primary btn-large">Generate Training Packet</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

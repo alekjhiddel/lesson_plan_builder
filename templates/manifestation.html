@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Manifestation Determination — SPARK{% endblock %}
+{% block nav_data %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3">
+                <i class="bi bi-clipboard-check me-2"></i>Manifestation Determination Review (MDR)
+            </h1>
+            <p class="text-muted">
+                Walk through the MDR process per Kentucky HB 538 and IDEA § 300.530. 
+                Use this checklist when a student with a disability faces a disciplinary placement change.
+            </p>
+            <div class="alert alert-info">
+                <strong>⏰ Timeline:</strong> An MDR must be conducted within <strong>10 school days</strong> 
+                of any decision to change the placement of a student with a disability for disciplinary reasons.
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Selection -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <label class="form-label fw-bold">Student</label>
+                    <select class="form-select" id="mdr-student">
+                        <option value="">— Select Student —</option>
+                        {% for student in students %}
+                        <option value="{{ student.id }}">{{ student.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <label class="form-label fw-bold">Incident Date</label>
+                    <input type="date" class="form-control" id="mdr-incident-date">
+                    <small class="text-muted mt-1 d-block">
+                        MDR Deadline: <span id="mdr-deadline" class="fw-bold text-danger">Select a date</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checklist Sections -->
+    {% for section_key, section in checklist.items() %}
+    <div class="card shadow-sm mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center" 
+             data-bs-toggle="collapse" data-bs-target="#section-{{ section_key }}" 
+             role="button" style="cursor: pointer;">
+            <h5 class="mb-0">
+                <span class="section-check me-2" id="check-{{ section_key }}">⬜</span>
+                {{ section.title }}
+            </h5>
+            <span class="badge bg-secondary" id="count-{{ section_key }}">0/{{ section.items|length }}</span>
+        </div>
+        <div id="section-{{ section_key }}" class="collapse show">
+            <div class="card-body">
+                <p class="text-muted mb-3">{{ section.description }}</p>
+                {% for item in section.items %}
+                <div class="form-check mb-2 p-2 rounded {% if item.required|default(false) %}border-start border-3 border-warning{% endif %}">
+                    {% if item.type|default('') == 'yes_no' %}
+                    <!-- Yes/No determination question -->
+                    <div class="mb-2">
+                        <strong>{{ item.text }}</strong>
+                        {% if item.required|default(false) %}<span class="text-danger">*</span>{% endif %}
+                    </div>
+                    {% if item.guidance|default('') %}
+                    <p class="text-muted small mb-2"><em>{{ item.guidance }}</em></p>
+                    {% endif %}
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="{{ item.id }}" 
+                               id="{{ item.id }}_yes" value="yes" 
+                               onchange="updateDetermination()">
+                        <label class="btn btn-outline-success" for="{{ item.id }}_yes">YES</label>
+                        <input type="radio" class="btn-check" name="{{ item.id }}" 
+                               id="{{ item.id }}_no" value="no"
+                               onchange="updateDetermination()">
+                        <label class="btn btn-outline-danger" for="{{ item.id }}_no">NO</label>
+                    </div>
+                    {% elif item.type|default('') in ['outcome_yes', 'outcome_no', 'exception'] %}
+                    <!-- Informational item -->
+                    <div class="alert {% if item.type == 'outcome_yes' %}alert-warning{% elif item.type == 'outcome_no' %}alert-info{% else %}alert-danger{% endif %} mb-0 py-2">
+                        {{ item.text }}
+                    </div>
+                    {% else %}
+                    <!-- Standard checkbox item -->
+                    <input class="form-check-input" type="checkbox" id="{{ item.id }}"
+                           onchange="updateSectionCount('{{ section_key }}')">
+                    <label class="form-check-label" for="{{ item.id }}">
+                        {{ item.text }}
+                        {% if item.required|default(false) %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Determination Result -->
+    <div class="card shadow-sm mb-4 border-2" id="determination-result" style="display:none;">
+        <div class="card-header" id="result-header">
+            <h4 class="mb-0" id="result-title"></h4>
+        </div>
+        <div class="card-body">
+            <div id="result-actions"></div>
+        </div>
+    </div>
+
+    <!-- HB 538 Reference -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">📜 Kentucky HB 538 Quick Reference</h5>
+        </div>
+        <div class="card-body">
+            <h6>Key Provisions (Effective July 1, 2024)</h6>
+            <ul>
+                {% for provision in hb538.key_provisions %}
+                <li>{{ provision }}</li>
+                {% endfor %}
+            </ul>
+            <h6 class="mt-3">Teacher Implications</h6>
+            <ul>
+                {% for imp in hb538.teacher_implications %}
+                <li>{{ imp }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Print Button -->
+    <div class="text-center mb-4">
+        <button class="btn btn-primary btn-lg" onclick="window.print()">
+            🖨️ Print This Checklist
+        </button>
+    </div>
+</div>
+
+<script>
+function updateSectionCount(sectionKey) {
+    const section = document.getElementById('section-' + sectionKey);
+    if (!section) return;
+    const checkboxes = section.querySelectorAll('input[type=checkbox]');
+    const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+    const countBadge = document.getElementById('count-' + sectionKey);
+    if (countBadge) countBadge.textContent = checked + '/' + checkboxes.length;
+    const checkIcon = document.getElementById('check-' + sectionKey);
+    if (checkIcon) checkIcon.textContent = (checked === checkboxes.length && checkboxes.length > 0) ? '✅' : '⬜';
+}
+
+function updateDetermination() {
+    const det1Yes = document.getElementById('det_1_yes');
+    const det1No = document.getElementById('det_1_no');
+    const det2Yes = document.getElementById('det_2_yes');
+    const det2No = document.getElementById('det_2_no');
+    
+    if (!det1Yes || !det2Yes) return;
+    
+    const q1Answered = det1Yes.checked || det1No.checked;
+    const q2Answered = det2Yes.checked || det2No.checked;
+    
+    if (!q1Answered || !q2Answered) return;
+    
+    const isManifestation = det1Yes.checked || det2Yes.checked;
+    const resultDiv = document.getElementById('determination-result');
+    const resultHeader = document.getElementById('result-header');
+    const resultTitle = document.getElementById('result-title');
+    const resultActions = document.getElementById('result-actions');
+    
+    resultDiv.style.display = 'block';
+    
+    if (isManifestation) {
+        resultHeader.className = 'card-header bg-warning';
+        resultTitle.textContent = '⚠️ MANIFESTATION — Behavior IS related to disability';
+        let actions = '<h6>Required Actions:</h6><ul>';
+        actions += '<li>Return student to prior placement (unless parent/LEA agree otherwise)</li>';
+        actions += '<li>Conduct FBA (or review existing)</li>';
+        actions += '<li>Create or revise Behavior Intervention Plan</li>';
+        actions += '<li>Review and revise IEP as needed</li>';
+        actions += '<li>Document determination in writing</li>';
+        actions += '<li>Provide parents copy of procedural safeguards</li>';
+        if (det2Yes && det2Yes.checked) {
+            actions += '<li class="text-danger fw-bold">⚠️ CRITICAL: Address IEP implementation failure immediately</li>';
+        }
+        actions += '</ul>';
+        resultActions.innerHTML = actions;
+    } else {
+        resultHeader.className = 'card-header bg-info text-white';
+        resultTitle.textContent = '✓ NOT A MANIFESTATION — Standard discipline may apply';
+        let actions = '<h6>Required Actions:</h6><ul>';
+        actions += '<li>School may apply same procedures as non-disabled peers</li>';
+        actions += '<li>FAPE must continue during any period of removal</li>';
+        actions += '<li>Document determination in writing</li>';
+        actions += '<li>Provide parents copy of procedural safeguards</li>';
+        actions += '<li>Consider whether IEP/BIP revision is still appropriate</li>';
+        actions += '</ul>';
+        resultActions.innerHTML = actions;
+    }
+    
+    resultDiv.scrollIntoView({behavior: 'smooth'});
+}
+
+// Date deadline calculator
+document.getElementById('mdr-incident-date').addEventListener('change', function() {
+    const incidentDate = new Date(this.value);
+    // Add 10 school days (roughly 14 calendar days, simplified)
+    let schoolDays = 0;
+    let checkDate = new Date(incidentDate);
+    while (schoolDays < 10) {
+        checkDate.setDate(checkDate.getDate() + 1);
+        const day = checkDate.getDay();
+        if (day !== 0 && day !== 6) schoolDays++;
+    }
+    document.getElementById('mdr-deadline').textContent = checkDate.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+});
+</script>
+{% endblock %}

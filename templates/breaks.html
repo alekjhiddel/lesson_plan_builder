@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Break & Regulation Activities — SPARK{% endblock %}
+{% block nav_schedule %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3">
+                <i class="bi bi-heart-pulse me-2"></i>Break & Regulation Activity Bank
+            </h1>
+            <p class="text-muted">
+                28 curated sensory/motor break activities for your classroom. 
+                Filter by category or communication mode to find the right fit.
+            </p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Category</label>
+            <select class="form-select" id="filter-category" onchange="filterActivities()">
+                <option value="all">All Categories</option>
+                {% for key, desc in categories.items() %}
+                <option value="{{ key }}">{{ key|replace('_', ' ')|title }} — {{ desc }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Communication Mode</label>
+            <select class="form-select" id="filter-mode" onchange="filterActivities()">
+                <option value="all">All Modes</option>
+                <option value="verbal">Verbal</option>
+                <option value="visual">Visual (AAC/PECS compatible)</option>
+                <option value="physical">Physical/Modeling Only</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Max Duration</label>
+            <select class="form-select" id="filter-duration" onchange="filterActivities()">
+                <option value="99">Any Duration</option>
+                <option value="3">3 min or less (quick reset)</option>
+                <option value="5">5 min or less</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Random Pick Button -->
+    <div class="text-center mb-4">
+        <button class="btn btn-primary btn-lg" onclick="randomPick()">
+            🎲 Random Break Activity
+        </button>
+        <p class="text-muted small mt-1">Quick pick based on current filters</p>
+    </div>
+
+    <!-- Random Result Display -->
+    <div id="random-result" class="alert alert-success d-none mb-4" role="alert">
+        <h5 id="random-name"></h5>
+        <p id="random-desc" class="mb-1"></p>
+        <small id="random-meta" class="text-muted"></small>
+    </div>
+
+    <!-- Activity Cards -->
+    <div class="row g-3" id="activity-grid">
+        {% for activity in activities %}
+        <div class="col-md-6 col-lg-4 activity-card" 
+             data-category="{{ activity.category }}"
+             data-modes="{{ activity.communication_modes|join(',') }}"
+             data-duration="{{ activity.duration_minutes }}">
+            <div class="card h-100 shadow-sm border-start border-3 
+                {% if activity.category == 'movement' %}border-primary
+                {% elif activity.category == 'deep_pressure' %}border-success
+                {% elif activity.category == 'breathing' %}border-info
+                {% elif activity.category == 'sensory' %}border-warning
+                {% else %}border-secondary{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0">{{ activity.name }}</h6>
+                        <span class="badge 
+                            {% if activity.category == 'movement' %}bg-primary
+                            {% elif activity.category == 'deep_pressure' %}bg-success
+                            {% elif activity.category == 'breathing' %}bg-info
+                            {% elif activity.category == 'sensory' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ activity.category|replace('_', ' ')|title }}
+                        </span>
+                    </div>
+                    <p class="card-text small">{{ activity.description }}</p>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            ⏱️ {{ activity.duration_minutes }} min &nbsp;|&nbsp;
+                            📦 {{ activity.materials }} &nbsp;|&nbsp;
+                            💬 {{ activity.communication_modes|join(', ') }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="no-results" class="text-center py-4 d-none">
+        <p class="text-muted">No activities match your filters. Try adjusting above.</p>
+    </div>
+</div>
+
+<script>
+function filterActivities() {
+    const category = document.getElementById('filter-category').value;
+    const mode = document.getElementById('filter-mode').value;
+    const maxDuration = parseInt(document.getElementById('filter-duration').value);
+    
+    const cards = document.querySelectorAll('.activity-card');
+    let visible = 0;
+    
+    cards.forEach(card => {
+        const cardCat = card.dataset.category;
+        const cardModes = card.dataset.modes.split(',');
+        const cardDur = parseInt(card.dataset.duration);
+        
+        let show = true;
+        if (category !== 'all' && cardCat !== category) show = false;
+        if (mode !== 'all' && !cardModes.includes(mode)) show = false;
+        if (cardDur > maxDuration) show = false;
+        
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    
+    document.getElementById('no-results').classList.toggle('d-none', visible > 0);
+}
+
+function randomPick() {
+    const visibleCards = Array.from(document.querySelectorAll('.activity-card'))
+        .filter(c => c.style.display !== 'none');
+    
+    if (visibleCards.length === 0) return;
+    
+    const pick = visibleCards[Math.floor(Math.random() * visibleCards.length)];
+    const name = pick.querySelector('.card-title').textContent;
+    const desc = pick.querySelector('.card-text').textContent;
+    const meta = pick.querySelector('.text-muted:last-child').textContent;
+    
+    document.getElementById('random-name').textContent = '🎯 ' + name;
+    document.getElementById('random-desc').textContent = desc;
+    document.getElementById('random-meta').textContent = meta;
+    document.getElementById('random-result').classList.remove('d-none');
+    
+    // Highlight the card briefly
+    pick.querySelector('.card').classList.add('border-dark');
+    setTimeout(() => pick.querySelector('.card').classList.remove('border-dark'), 2000);
+}
+</script>
+{% endblock %}
