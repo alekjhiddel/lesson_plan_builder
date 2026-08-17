@@ -38,6 +38,14 @@ from modules.schedule_engine import (
     get_schedule_config, save_schedule_config, get_default_config,
     generate_schedule, format_schedule_for_display, format_schedule_for_prompt
 )
+from modules.break_activities import (
+    get_all_activities, get_activities_by_category, get_categories,
+    get_activities_for_student, get_random_break, format_break_for_display
+)
+from modules.manifestation_determination import (
+    get_checklist, get_hb538_summary, evaluate_determination, get_timeline_info
+)
+
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -87,6 +95,50 @@ def save_lesson_plan(plan_data):
         json.dump(plan_data, f, indent=2)
     return filename
 
+
+
+# ============================================================
+# AUTISM FAST FACTS DATA (Kentucky, source: KDE Dec 2024)
+# ============================================================
+
+def get_autism_fast_facts():
+    """Return structured autism facts data for parent communications."""
+    return {
+        "title": "Kentucky Autism Fast Facts",
+        "source": "Kentucky Department of Education, December 2024",
+        "prevalence": {
+            "national_rate": "1 in 36 children identified with ASD (CDC, 2023)",
+            "ky_students_served": "Approximately 12,500 students ages 3-21 in Kentucky receive special education services under the autism eligibility category",
+            "growth": "Kentucky has seen a 38% increase in autism identification over the past decade",
+            "gender": "Boys are 4x more likely to be identified than girls"
+        },
+        "educational_data": {
+            "placement": {
+                "regular_class_80_plus": "42% of KY students with autism spend 80%+ of day in regular class",
+                "regular_class_40_79": "18% spend 40-79% in regular class",
+                "regular_class_under_40": "33% spend less than 40% in regular class",
+                "separate_settings": "7% are in separate schools/residential/homebound"
+            },
+            "graduation": "Students with autism in KY graduate at approximately 72% rate (vs 90% general population)",
+            "post_secondary": "About 36% of young adults with autism pursue post-secondary education"
+        },
+        "key_facts_for_parents": [
+            "Autism is a neurological difference, not a disease — early intervention and quality education lead to best outcomes",
+            "Every child with autism is unique — there is no single approach that works for all",
+            "Kentucky law (IDEA & KRS 157) guarantees your child a Free Appropriate Public Education (FAPE)",
+            "You are an equal member of your child's ARC/IEP team",
+            "Your child's IEP must include measurable annual goals based on their present levels",
+            "Visual supports, structured environments, and consistent routines are evidence-based practices",
+            "Behavior is communication — challenging behavior often signals an unmet need",
+            "Transition planning begins at age 14 in Kentucky (or earlier if appropriate)"
+        ],
+        "kentucky_resources": [
+            {"name": "KY Commission on Autism Spectrum Disorders", "url": "https://autism.ky.gov"},
+            {"name": "KDE Special Education", "url": "https://education.ky.gov/specialed"},
+            {"name": "KY Autism Training Center (WKU)", "url": "https://www.wku.edu/katc/"},
+            {"name": "First Steps (Early Intervention, birth-3)", "url": "https://chfs.ky.gov/agencies/dms/firststeps"},
+        ]
+    }
 
 # ============================================================
 # ROUTES
@@ -224,6 +276,8 @@ def generate():
         custom_theme = request.form.get('custom_theme', '')
         additional_notes = request.form.get('additional_notes', '')
         
+        para_notes_style = request.form.get('para_notes_style', 'detailed')
+        
         builder = PromptBuilder()
         prompt = builder.build_prompt(
             students=students,
@@ -231,7 +285,8 @@ def generate():
             plan_type=plan_type,
             month_override=selected_month if selected_month else None,
             custom_theme=custom_theme,
-            additional_notes=additional_notes
+            additional_notes=additional_notes,
+            para_notes_style=para_notes_style
         )
         
         if config.get('api_enabled') and is_api_configured(config):
@@ -547,10 +602,11 @@ def data_entry():
         value = request.form.get('value', '')
         method = request.form.get('method', 'trial')
         notes = request.form.get('notes', '')
+        behavior_category = request.form.get('behavior_category', '')
         
         if student_id and goal_text and value:
             from datetime import date
-            add_data_point(student_id, goal_text, date.today().isoformat(), value, method, notes)
+            add_data_point(student_id, goal_text, date.today().isoformat(), value, method, notes, behavior_category)
             flash('Data saved! ✅', 'success')
         else:
             flash('Please fill in all required fields.', 'error')
@@ -753,6 +809,121 @@ def restore_backup():
 # ============================================================
 # MAIN
 # ============================================================
+
+
+# --- Break/Regulation Activity Bank Routes ---
+
+@app.route('/breaks')
+def breaks():
+    activities = get_all_activities()
+    categories = get_categories()
+    return render_template('breaks.html', activities=activities, categories=categories)
+
+
+@app.route('/breaks/random')
+def break_random():
+    category = request.args.get('category', None)
+    duration = int(request.args.get('duration', 5))
+    comm_mode = request.args.get('mode', None)
+    activity = get_random_break(category=category, duration_max=duration, comm_mode=comm_mode)
+    if activity:
+        return jsonify(format_break_for_display(activity))
+    return jsonify({'error': 'No matching activities'}), 404
+
+
+# --- Manifestation Determination Routes ---
+
+@app.route('/manifestation')
+def manifestation():
+    students = get_all_students()
+    checklist = get_checklist()
+    hb538 = get_hb538_summary()
+    return render_template('manifestation.html', 
+                         students=students, checklist=checklist, hb538=hb538)
+
+
+@app.route('/manifestation/evaluate', methods=['POST'])
+def manifestation_evaluate():
+    det_1 = request.form.get('det_1') == 'yes'
+    det_2 = request.form.get('det_2') == 'yes'
+    result = evaluate_determination(det_1, det_2)
+    return jsonify(result)
+
+
+# --- Autism Fast Facts Resource Route ---
+
+@app.route('/resources/autism-facts')
+def autism_fast_facts():
+    """Display Kentucky Autism Fast Facts as a parent-shareable resource."""
+    facts = get_autism_fast_facts()
+    return render_template('autism_facts.html', facts=facts)
+
+
+# --- Lesson Plan Repeat Route ---
+
+@app.route('/generate/repeat-last', methods=['GET', 'POST'])
+def repeat_last_plan():
+    """Copy last week's plan structure forward with option to change theme/materials."""
+    import glob
+    
+    # Find the most recent plan
+    os.makedirs(PLANS_DIR, exist_ok=True)
+    plan_files = sorted(glob.glob(os.path.join(PLANS_DIR, 'plan_*.json')), reverse=True)
+    
+    last_plan = None
+    if plan_files:
+        with open(plan_files[0], 'r') as f:
+            last_plan = json.load(f)
+    
+    if request.method == 'POST' and last_plan:
+        # User confirmed repeat with new theme
+        new_theme = request.form.get('new_theme', '')
+        new_notes = request.form.get('new_notes', '')
+        
+        config = get_config()
+        students = get_all_students()
+        builder = PromptBuilder()
+        
+        # Build prompt with "repeat structure" instruction
+        repeat_instruction = (
+            "IMPORTANT: Repeat the same activity structure and schedule as last week. "
+            "MSD students thrive on routine — keep the same flow. "
+            "Only update the theme/materials as noted below. "
+            "Keep the same centers, same transitions, same aide assignments."
+        )
+        if new_theme:
+            repeat_instruction += f"\nNew theme this week: {new_theme}"
+        if new_notes:
+            repeat_instruction += f"\nChanges from last week: {new_notes}"
+        
+        prompt = builder.build_prompt(
+            students=students,
+            config=config,
+            plan_type='weekly',
+            additional_notes=repeat_instruction
+        )
+        
+        if config.get('api_enabled') and is_api_configured(config):
+            response = generate_with_api(prompt, config)
+            if response:
+                parser = ResponseParser()
+                processed = parser.process_response(response, students)
+                save_lesson_plan({
+                    'type': 'weekly_repeat',
+                    'prompt': prompt,
+                    'raw_response': response,
+                    'processed': processed,
+                    'generated_at': __import__('datetime').datetime.now().isoformat(),
+                    'repeated_from': plan_files[0]
+                })
+                return render_template('result.html', plan=processed, 
+                                     plan_type='weekly', raw_response=response)
+        
+        # Copy/paste mode
+        return render_template('prompt_display.html', prompt=prompt, plan_type='weekly_repeat')
+    
+    return render_template('repeat_plan.html', last_plan=last_plan)
+
 
 def open_browser():
     """Open browser after a short delay to let the server start."""
