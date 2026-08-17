@@ -532,7 +532,7 @@ def settings():
         save_config(config)
         flash('Settings saved! ⚙️', 'success')
         return redirect(url_for('settings'))
-    return render_template('settings.html', config=config)
+    return render_template('settings.html', config=config, update_result=None)
 
 
 # --- Update Routes ---
@@ -541,6 +541,14 @@ def settings():
 def check_updates():
     result = check_for_updates()
     return jsonify(result)
+
+
+@app.route('/check-updates-page')
+def check_updates_page():
+    """Check for updates and render settings page with result (no JS needed)."""
+    config = get_config()
+    result = check_for_updates()
+    return render_template('settings.html', config=config, update_result=result)
 
 
 @app.route('/apply-update', methods=['POST'])
