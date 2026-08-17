@@ -55,6 +55,7 @@ def check_for_updates():
     """
     Check GitHub for the latest version.
     Returns dict with: available, latest_version, current_version, changes
+    Always returns a user-visible 'message' field.
     """
     if not HAS_REQUESTS:
         return {'available': False, 'error': 'requests package not installed'}
@@ -78,12 +79,39 @@ def check_for_updates():
         # Check if we have version.json with last update SHA
         current = get_current_version()
         current_sha = current.get('last_commit_sha', '')
+        current_version = current.get('version', CURRENT_VERSION)
         
-        if current_sha == latest_sha:
+        # Also fetch the remote version.json to compare version strings
+        # This handles fresh installs where last_commit_sha isn't set
+        remote_version = None
+        try:
+            ver_resp = requests.get(
+                f'https://raw.githubusercontent.com/{GITHUB_REPO}/main/version.json',
+                timeout=10
+            )
+            if ver_resp.status_code == 200:
+                remote_version = ver_resp.json().get('version', '')
+        except:
+            pass
+        
+        # Up to date if EITHER:
+        # 1. SHA matches (we installed this exact commit), OR
+        # 2. Version strings match (fresh install from same release)
+        is_up_to_date = False
+        if current_sha and current_sha == latest_sha:
+            is_up_to_date = True
+        elif remote_version and remote_version == current_version and not current_sha:
+            # Fresh install, same version — stamp the SHA so future checks are fast
+            current['last_commit_sha'] = latest_sha
+            save_version_info(current)
+            is_up_to_date = True
+        
+        if is_up_to_date:
             return {
                 'available': False,
-                'current_version': current.get('version', CURRENT_VERSION),
-                'message': 'You are up to date! ✅'
+                'current_version': current_version,
+                'latest_version': remote_version or current_version,
+                'message': f'You\'re on the latest version (v{current_version}). No update needed! ✅'
             }
         
         # Get recent commits to show what changed
@@ -107,20 +135,21 @@ def check_for_updates():
         
         return {
             'available': True,
-            'current_version': current.get('version', CURRENT_VERSION),
+            'current_version': current_version,
+            'latest_version': remote_version or 'newer',
             'latest_sha': latest_sha,
             'latest_date': latest_date[:10],
             'latest_message': latest_message,
             'changes': changes,
-            'message': f'Update available! Latest: {latest_date[:10]}'
+            'message': f'Update available! You have v{current_version}, latest is v{remote_version or "?"} ({latest_date[:10]})'
         }
     
     except requests.exceptions.Timeout:
-        return {'available': False, 'error': 'Could not reach GitHub (timeout)'}
+        return {'available': False, 'error': 'Could not reach GitHub (timeout). Check your internet connection.'}
     except requests.exceptions.ConnectionError:
-        return {'available': False, 'error': 'No internet connection'}
+        return {'available': False, 'error': 'No internet connection. Connect to WiFi and try again.'}
     except Exception as e:
-        return {'available': False, 'error': f'Error checking: {str(e)[:100]}'}
+        return {'available': False, 'error': f'Something went wrong: {str(e)[:100]}'}
 
 
 def apply_update():
