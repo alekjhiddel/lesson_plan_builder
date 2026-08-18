@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}ESY Justification - SPARK{% endblock %}
+{% block body_class %}esy-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📊 ESY Justification</h1>
+    <p class="subtitle">Extended School Year eligibility based on regression data across breaks</p>
+</div>
+
+<div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;">
+    <a href="{{ url_for('esy_settings_page') }}" class="btn btn-secondary" style="text-decoration: none;">
+        ⚙️ Configure Break Periods
+    </a>
+</div>
+
+{% if justification %}
+<div class="form-section" style="margin-top: 24px;">
+    <h2>📄 ESY Justification Report</h2>
+    <div class="card" style="padding: 20px; background: #f0fff0; border-left: 4px solid #4caf50;">
+        <p><strong>Student:</strong> {{ justification.student_name }}</p>
+        <p><strong>Date:</strong> {{ justification.generated_date }}</p>
+        <p><strong>Recommendation:</strong> {{ justification.recommendation }}</p>
+    </div>
+    
+    <div style="margin-top: 16px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; padding: 16px; background: white; border: 1px solid #ddd; border-radius: 8px;">{{ justification.narrative }}</div>
+    
+    {% if justification.goal_details %}
+    <h3 style="margin-top: 24px;">Goal-by-Goal Analysis</h3>
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px;">
+        <thead>
+            <tr style="background: #f8f9fa;">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Goal</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Break</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Pre-Break</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Post-Break</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Regression</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for detail in justification.goal_details %}
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ detail.goal_text[:60] }}...</td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">{{ detail.break_period }}</td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">{{ detail.before_avg }}%</td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">{{ detail.after_avg }}%</td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; color: #d32f2f; font-weight: 600;">-{{ detail.regression_pct }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    
+    <div style="margin-top: 16px;">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Print Report</button>
+        <a href="{{ url_for('esy_page') }}" class="btn btn-secondary" style="text-decoration: none; margin-left: 8px;">← Back</a>
+    </div>
+</div>
+
+{% else %}
+
+{% if candidates %}
+<div class="form-section">
+    <h2>⚠️ Students Showing Regression</h2>
+    <p class="help-text">These students have data showing performance drops after school breaks.</p>
+    
+    {% for candidate in candidates %}
+    <div class="card" style="padding: 16px; margin-bottom: 12px; border-left: 4px solid #ff9800;">
+        <h3>{{ candidate.student_name }}</h3>
+        <p>{{ candidate.regression_count }} goal(s) showing regression</p>
+        <ul style="margin: 8px 0;">
+            {% for reg in candidate.regressions %}
+            <li>
+                <strong>{{ reg.goal_text[:60] }}...</strong> — 
+                {{ reg.break_period }}: dropped {{ reg.regression_data.regression_pct }}%
+                ({{ reg.regression_data.before_avg }}% → {{ reg.regression_data.after_avg }}%)
+            </li>
+            {% endfor %}
+        </ul>
+        <form method="POST" action="{{ url_for('esy_generate') }}" style="margin-top: 8px;">
+            <input type="hidden" name="student_id" value="{{ candidate.student_id }}">
+            <button type="submit" class="btn btn-primary">Generate ESY Justification</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="form-section">
+    <div class="card" style="padding: 24px; text-align: center;">
+        <h3>No Regression Detected</h3>
+        <p class="help-text">
+            {% if students %}
+            No students are currently showing regression patterns across break periods. 
+            Regression is detected when performance drops more than 10% after a school break.
+            Make sure you have data collected before and after breaks for accurate detection.
+            {% else %}
+            Add students and collect progress data to use ESY justification.
+            {% endif %}
+        </p>
+        {% if not students %}
+        <a href="{{ url_for('student_add') }}" class="btn btn-secondary" style="text-decoration: none; margin-top: 12px;">+ Add Students</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Goal Mastery - SPARK{% endblock %}
+{% block body_class %}mastery-page{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🎉 Goal Mastery</h1>
+    <p class="subtitle">Track mastered goals, celebrate achievements, and find next steps</p>
+</div>
+
+{% if mastery_check and mastery_check.mastered %}
+<div class="form-section" style="background: #fff8e1; border: 2px solid #ffc107; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+    <h2>🎉 New Mastery Detected!</h2>
+    {% for item in mastery_check.mastered %}
+    <div class="card" style="padding: 16px; margin-bottom: 12px; background: white; border-left: 4px solid #4caf50;">
+        <h3>🌟 {{ item.student_name }} mastered a goal!</h3>
+        <p><strong>Goal:</strong> {{ item.goal_text[:100] }}{% if item.goal_text|length > 100 %}...{% endif %}</p>
+        <p><strong>Criteria met:</strong> {{ item.criteria.threshold }}% across {{ item.consecutive_met }} consecutive sessions</p>
+        <form method="POST" action="{{ url_for('mastery_mark') }}" style="margin-top: 8px;">
+            <input type="hidden" name="student_id" value="{{ item.student_id }}">
+            <input type="hidden" name="student_name" value="{{ item.student_name }}">
+            <input type="hidden" name="goal_id" value="{{ item.goal_id }}">
+            <input type="hidden" name="goal_text" value="{{ item.goal_text[:200] }}">
+            <button type="submit" class="btn btn-primary">✅ Confirm Mastery & See Next Goals</button>
+        </form>
+        <p class="help-text" style="margin-top: 8px;">📋 Note: An ARC meeting should be convened to amend the IEP when a goal is mastered.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if mastery_check and mastery_check.approaching %}
+<div class="form-section">
+    <h2>⚡ Approaching Mastery</h2>
+    <p class="help-text">These goals are close to meeting mastery criteria.</p>
+    {% for item in mastery_check.approaching %}
+    <div class="card" style="padding: 16px; margin-bottom: 8px; border-left: 4px solid #2196f3;">
+        <p><strong>{{ item.student_name }}</strong> — {{ item.goal_text[:80] }}{% if item.goal_text|length > 80 %}...{% endif %}</p>
+        <p class="help-text">{{ item.consecutive_met }}/{{ item.criteria.consecutive }} sessions at {{ item.criteria.threshold }}%+ — {{ item.sessions_needed }} more session(s) needed!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if suggestions %}
+<div class="form-section" style="background: #e8f5e9; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+    <h2>📚 Suggested Next Goals for {{ confirmed_student_name }}</h2>
+    <p class="help-text">Based on the mastered goal, here are recommended next steps from the goal bank:</p>
+    
+    {% if suggestions %}
+    {% for goal in suggestions %}
+    <div class="card" style="padding: 16px; margin-bottom: 8px; background: white;">
+        <p>{{ goal.text[:150] }}{% if goal.text|length > 150 %}...{% endif %}</p>
+        <p class="help-text">Level {{ goal.level }} · {{ goal.domain }} · {{ goal.skill_area }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+    
+    <div class="card" style="padding: 16px; margin-top: 12px; background: white; border: 2px dashed #ccc;">
+        <p><strong>✍️ Or write a custom goal</strong></p>
+        <p class="help-text">You can also write a completely custom goal at the next ARC meeting.</p>
+    </div>
+</div>
+{% endif %}
+
+{% if celebrations %}
+<div class="form-section">
+    <h2>🏆 Recent Celebrations</h2>
+    <p class="help-text">Goals mastered by your students — great work!</p>
+    {% for entry in celebrations %}
+    <div class="card" style="padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 24px;">🎉</span>
+        <div>
+            <p style="margin: 0;"><strong>{{ entry.student_name }}</strong> mastered:</p>
+            <p style="margin: 4px 0 0 0; color: #555;">{{ entry.goal_text[:80] }}{% if entry.goal_text|length > 80 %}...{% endif %}</p>
+            <p class="help-text" style="margin: 2px 0 0 0;">{{ entry.mastery_date }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not celebrations and not mastery_check.mastered and not mastery_check.approaching %}
+<div class="form-section">
+    <div class="card" style="padding: 24px; text-align: center;">
+        <h3>No Mastery Data Yet</h3>
+        <p class="help-text">
+            {% if students %}
+            As you collect progress data, SPARK will automatically detect when students 
+            meet their mastery criteria and suggest next goals. Keep collecting data!
+            {% else %}
+            Add students and start collecting data to track goal mastery.
+            {% endif %}
+        </p>
+        {% if not students %}
+        <a href="{{ url_for('student_add') }}" class="btn btn-secondary" style="text-decoration: none; margin-top: 12px;">+ Add Students</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if students %}
+<div class="form-section" style="margin-top: 24px;">
+    <h2>⚙️ Mastery Criteria Settings</h2>
+    <p class="help-text">Customize mastery criteria per student. Default is 80% across 3 consecutive sessions.</p>
+    
+    <form method="POST" action="{{ url_for('mastery_criteria_save') }}">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+                <tr style="background: #f8f9fa;">
+                    <th style="padding: 10px; text-align: left;">Student</th>
+                    <th style="padding: 10px; text-align: center;">Threshold (%)</th>
+                    <th style="padding: 10px; text-align: center;">Consecutive Sessions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">{{ student.name }}</td>
+                    <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">
+                        <input type="number" name="threshold_{{ student.id }}" 
+                               value="{{ criteria_map.get(student.id, {}).get('threshold', 80) }}"
+                               min="10" max="100" step="5" style="width: 70px; text-align: center;">
+                    </td>
+                    <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">
+                        <input type="number" name="consecutive_{{ student.id }}"
+                               value="{{ criteria_map.get(student.id, {}).get('consecutive', 3) }}"
+                               min="1" max="10" style="width: 70px; text-align: center;">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="margin-top: 12px;">
+            <button type="submit" class="btn btn-primary">Save Criteria</button>
+            <span class="help-text" style="margin-left: 12px;">These apply to ALL goals for each student (per-goal override coming soon)</span>
+        </div>
+    </form>
+    
+    {% if criteria_saved %}
+    <div style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-radius: 8px; color: #2e7d32;">
+        ✅ Mastery criteria saved!
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
