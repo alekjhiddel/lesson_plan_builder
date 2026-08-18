@@ -244,6 +244,12 @@ def apply_update():
         os.remove(temp_zip)
         shutil.rmtree(temp_extract)
         
+        # Restore executable permissions on start scripts (GitHub zips strip them)
+        start_command = os.path.join(APP_DIR, 'start.command')
+        if os.path.exists(start_command):
+            import stat
+            os.chmod(start_command, os.stat(start_command).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        
         return {
             'success': True,
             'message': 'Update applied successfully! ✅ Restart the app to see changes.',
