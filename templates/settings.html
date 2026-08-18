@@ -99,12 +99,20 @@
             {% endfor %}
         </ul>
         {% endif %}
-        <form method="POST" action="/apply-update" style="margin-top: 12px;"
-              onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Updating...';">
+        <form method="POST" action="/apply-update" style="margin-top: 12px;">
             <button type="submit" class="btn btn-primary">⬇️ Download & Install Update</button>
         </form>
         {% else %}
         <p style="color: #4CAF50; font-weight: 600;">✅ {{ update_result.message }}</p>
+        {% endif %}
+        {% if show_restart %}
+        <div style="margin-top: 16px; padding: 16px; background: #e8f5e9; border-radius: 8px;">
+            <p style="margin: 0 0 12px 0; font-weight: 600;">✅ Update installed! Restart to load the new version:</p>
+            <form method="POST" action="/restart">
+                <button type="submit" class="btn btn-primary">🔄 Restart Now</button>
+            </form>
+            <p class="help-text" style="margin-top: 8px;">This will close and relaunch SPARK. The page will reload automatically.</p>
+        </div>
         {% endif %}
     </div>
     {% endif %}
