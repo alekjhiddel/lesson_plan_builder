@@ -30,37 +30,30 @@
     {% for d in domains %}
         {% if d.key == selected_domain %}
     <h2>{{ d.display_name }}</h2>
-    <p class="help-text">{{ d.description }}</p>
+    <p class="help-text" style="margin-bottom: 16px;">{{ d.description }}</p>
         {% endif %}
     {% endfor %}
     
-    {% if goals is mapping %}
-        {% for subdomain_key, goal_list in goals.items() %}
-        <div class="form-section" style="margin-bottom: 16px;">
-            <h3 style="font-size: 16px; color: #4A90A4;">{{ subdomain_key }}</h3>
-            {% for goal in goal_list %}
-            <div class="card" style="padding: 12px; margin-bottom: 8px;">
-                <p style="margin: 0;">{{ goal.text }}</p>
-                {% if goal.standard_alignment %}
-                <p class="help-text" style="margin: 4px 0 0 0; font-size: 12px;">📐 {{ goal.standard_alignment }}</p>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-        {% endfor %}
-    {% else %}
-        {% for goal in goals %}
+    {% set ns = namespace(current_area='') %}
+    {% for goal in goals %}
+        {% if goal.skill_area_display != ns.current_area %}
+            {% if ns.current_area != '' %}</div>{% endif %}
+            {% set ns.current_area = goal.skill_area_display %}
+    <div class="form-section" style="margin-bottom: 16px;">
+        <h3 style="font-size: 16px; color: #4A90A4;">{{ goal.skill_area_display }}</h3>
+        {% endif %}
         <div class="card" style="padding: 12px; margin-bottom: 8px;">
             <p style="margin: 0;">{{ goal.text }}</p>
-            {% if goal.domain %}
-            <p class="help-text" style="margin: 4px 0 0 0; font-size: 12px;">📁 {{ goal.domain }} → {{ goal.subdomain|default('') }}</p>
-            {% endif %}
-            {% if goal.standard_alignment %}
+            {% if goal.standard_alignment is defined and goal.standard_alignment %}
             <p class="help-text" style="margin: 4px 0 0 0; font-size: 12px;">📐 {{ goal.standard_alignment }}</p>
             {% endif %}
+            {% if goal.level is defined and goal.level %}
+            <span class="help-text" style="font-size: 11px;">Level {{ goal.level }}</span>
+            {% endif %}
         </div>
-        {% endfor %}
-    {% endif %}
+    {% endfor %}
+    {% if ns.current_area != '' %}</div>{% endif %}
+
 {% elif selected_domain %}
     <p class="help-text">No goals found for this domain.</p>
 {% else %}
