@@ -43,12 +43,12 @@
         <h3 style="font-size: 16px; color: #4A90A4;">{{ goal.skill_area_display }}</h3>
         {% endif %}
         <div class="card" style="padding: 12px; margin-bottom: 8px;">
-            <p style="margin: 0;">{{ goal.text }}</p>
-            {% if goal.standard_alignment is defined and goal.standard_alignment %}
-            <p class="help-text" style="margin: 4px 0 0 0; font-size: 12px;">📐 {{ goal.standard_alignment }}</p>
+            <p style="margin: 0;">{{ goal.template }}</p>
+            {% if goal.population is defined and goal.population %}
+            <span class="help-text" style="font-size: 11px; background: #e8f4f8; padding: 2px 8px; border-radius: 4px;">{{ goal.population }}</span>
             {% endif %}
             {% if goal.level is defined and goal.level %}
-            <span class="help-text" style="font-size: 11px;">Level {{ goal.level }}</span>
+            <span class="help-text" style="font-size: 11px; background: #f0f0f0; padding: 2px 8px; border-radius: 4px;">Level {{ goal.level }}</span>
             {% endif %}
         </div>
     {% endfor %}
