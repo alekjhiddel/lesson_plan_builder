@@ -708,7 +708,29 @@ def check_updates_page():
 @app.route('/apply-update', methods=['POST'])
 def do_update():
     result = apply_update()
-    return jsonify(result)
+    if result.get('success'):
+        config = get_config()
+        return render_template('settings.html', config=config, 
+                             update_result={'available': False, 'message': result['message'] + ' Click Restart below.'},
+                             show_restart=True)
+    config = get_config()
+    return render_template('settings.html', config=config, update_result={'error': result.get('error', 'Update failed')})
+
+
+@app.route('/restart', methods=['POST'])
+def restart_app():
+    """Restart the Flask app after an update."""
+    import subprocess
+    # Start a new instance of the app, then exit this one
+    script_path = os.path.join(APP_DIR, 'start.command')
+    subprocess.Popen(['bash', script_path], start_new_session=True)
+    # Give the response time to send before we exit
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func:
+        func()
+    else:
+        os._exit(0)
+    return 'Restarting...'
 
 
 # --- IEP Routes ---

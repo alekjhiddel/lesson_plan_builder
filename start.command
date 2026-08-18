@@ -7,6 +7,9 @@
 # Stay in the app's directory
 cd "$(dirname "$0")"
 
+# Self-heal: ensure this script is executable (GitHub zips strip permissions)
+chmod +x "$0" 2>/dev/null
+
 echo ""
 echo "═══════════════════════════════════════════════════════"
 echo "  🍎 SPARK"
