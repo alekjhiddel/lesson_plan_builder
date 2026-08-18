@@ -59,6 +59,15 @@ from modules.related_services import (
     get_student_services, save_student_services, add_service, log_session,
     get_monthly_summary, get_dashboard_data, get_service_types, SERVICE_TYPES
 )
+from modules.esy_justification import (
+    get_esy_candidates, generate_esy_justification, get_break_periods,
+    save_break_periods, format_esy_report
+)
+from modules.goal_mastery import (
+    check_all_mastery, get_mastery_criteria, set_mastery_criteria,
+    get_suggested_next_goals, get_mastery_celebrations, mark_goal_mastered,
+    get_mastered_goals_for_student
+)
 from modules.compliance_calendar import (
     get_compliance_dashboard, get_calendar_events, get_upcoming_deadlines,
     add_custom_event, remove_custom_event, get_all_custom_events
@@ -541,6 +550,151 @@ def settings():
 def check_updates():
     result = check_for_updates()
     return jsonify(result)
+
+
+# --- ESY Justification Routes ---
+
+@app.route('/esy')
+def esy_page():
+    """ESY justification dashboard."""
+    students = get_all_students()
+    candidates = get_esy_candidates(students, get_goal_data)
+    return render_template('esy.html',
+                         students=students,
+                         candidates=candidates,
+                         justification=None)
+
+
+@app.route('/esy/generate', methods=['POST'])
+def esy_generate():
+    """Generate ESY justification for a student."""
+    student_id = request.form.get('student_id', '')
+    students = get_all_students()
+    student = get_student(student_id) if student_id else None
+    
+    if not student:
+        flash('Student not found.')
+        return redirect(url_for('esy_page'))
+    
+    candidates = get_esy_candidates([student], get_goal_data)
+    if candidates:
+        regressions = candidates[0].get('regressions', [])
+        justification = generate_esy_justification(student, regressions)
+    else:
+        justification = {
+            'student_name': student.get('name', ''),
+            'generated_date': '',
+            'narrative': 'No regression data found for this student.',
+            'goal_details': [],
+            'recommendation': 'Insufficient evidence for ESY',
+        }
+    
+    return render_template('esy.html',
+                         students=students,
+                         candidates=[],
+                         justification=justification)
+
+
+@app.route('/esy/settings', methods=['GET', 'POST'])
+def esy_settings_page():
+    """Configure break periods for ESY tracking."""
+    saved = False
+    if request.method == 'POST':
+        periods = get_break_periods()
+        for period in periods:
+            pid = period['id']
+            period['start'] = request.form.get('start_' + pid, period['start'])
+            period['end'] = request.form.get('end_' + pid, period['end'])
+            period['data_window_before_days'] = int(request.form.get('before_' + pid, period['data_window_before_days']))
+            period['data_window_after_days'] = int(request.form.get('after_' + pid, period['data_window_after_days']))
+        save_break_periods(periods)
+        saved = True
+    
+    break_periods = get_break_periods()
+    return render_template('esy_settings.html', break_periods=break_periods, saved=saved)
+
+
+# --- Goal Mastery Routes ---
+
+@app.route('/mastery')
+def mastery_page():
+    """Goal mastery dashboard."""
+    students = get_all_students()
+    mastery_check = check_all_mastery(students, get_goal_data)
+    celebrations = get_mastery_celebrations()
+    
+    # Build criteria map for display
+    criteria_map = {}
+    for student in students:
+        sid = student.get('id', '')
+        criteria_map[sid] = get_mastery_criteria(sid, '_default')
+    
+    return render_template('goal_mastery.html',
+                         students=students,
+                         mastery_check=mastery_check,
+                         celebrations=celebrations,
+                         criteria_map=criteria_map,
+                         suggestions=None,
+                         confirmed_student_name=None,
+                         criteria_saved=False)
+
+
+@app.route('/mastery/mark', methods=['POST'])
+def mastery_mark():
+    """Confirm a goal as mastered and show suggestions."""
+    from modules.goal_bank import GOAL_BANK
+    
+    student_id = request.form.get('student_id', '')
+    student_name = request.form.get('student_name', '')
+    goal_id = request.form.get('goal_id', '')
+    goal_text = request.form.get('goal_text', '')
+    
+    mark_goal_mastered(student_id, student_name, goal_id, goal_text)
+    suggestions = get_suggested_next_goals(goal_id, GOAL_BANK)
+    
+    students = get_all_students()
+    mastery_check = check_all_mastery(students, get_goal_data)
+    celebrations = get_mastery_celebrations()
+    criteria_map = {}
+    for student in students:
+        sid = student.get('id', '')
+        criteria_map[sid] = get_mastery_criteria(sid, '_default')
+    
+    return render_template('goal_mastery.html',
+                         students=students,
+                         mastery_check=mastery_check,
+                         celebrations=celebrations,
+                         criteria_map=criteria_map,
+                         suggestions=suggestions,
+                         confirmed_student_name=student_name,
+                         criteria_saved=False)
+
+
+@app.route('/mastery/criteria', methods=['POST'])
+def mastery_criteria_save():
+    """Save mastery criteria for students."""
+    students = get_all_students()
+    for student in students:
+        sid = student.get('id', '')
+        threshold = request.form.get('threshold_' + sid, '80')
+        consecutive = request.form.get('consecutive_' + sid, '3')
+        set_mastery_criteria(sid, '_default', int(threshold), int(consecutive))
+    
+    mastery_check = check_all_mastery(students, get_goal_data)
+    celebrations = get_mastery_celebrations()
+    criteria_map = {}
+    for student in students:
+        sid = student.get('id', '')
+        criteria_map[sid] = get_mastery_criteria(sid, '_default')
+    
+    return render_template('goal_mastery.html',
+                         students=students,
+                         mastery_check=mastery_check,
+                         celebrations=celebrations,
+                         criteria_map=criteria_map,
+                         suggestions=None,
+                         confirmed_student_name=None,
+                         criteria_saved=True)
 
 
 @app.route('/check-updates-page')
