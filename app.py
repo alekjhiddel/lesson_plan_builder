@@ -72,6 +72,11 @@ from modules.compliance_calendar import (
     get_compliance_dashboard, get_calendar_events, get_upcoming_deadlines,
     add_custom_event, remove_custom_event, get_all_custom_events
 )
+from modules.year_lifecycle import (
+    get_current_year, set_current_year, is_migrated,
+    get_teacher_stage, set_teacher_stage, get_stage_definitions
+)
+from modules.migration import needs_migration, migrate_to_year_aware
 
 
 app = Flask(__name__)
@@ -176,6 +181,8 @@ def dashboard():
     config = get_config()
     if not config.get('setup_complete'):
         return redirect(url_for('setup_wizard'))
+    if needs_migration():
+        return redirect(url_for('migration_wizard'))
     students = get_all_students()
     themes = get_current_themes()
     return render_template('dashboard.html', 
@@ -203,6 +210,44 @@ def setup_wizard():
     return render_template('setup_wizard.html')
 
 
+# --- Migration Route ---
+
+@app.route('/migrate', methods=['GET', 'POST'])
+def migration_wizard():
+    """One-time migration wizard for year-over-year tracking."""
+    if not needs_migration():
+        # Already migrated — go to dashboard
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        current_year = request.form.get('current_year', '2026-27').strip()
+        stage_key = request.form.get('stage', 'elementary')
+        
+        try:
+            # Run the migration
+            report = migrate_to_year_aware(year=current_year, stage_key=stage_key)
+            
+            # Set the teacher stage
+            set_teacher_stage(stage_key)
+            
+            migrated_count = report.get('students_migrated', 0) if report else 0
+            if migrated_count > 0:
+                flash(f'Year tracking enabled! {migrated_count} student{"s" if migrated_count != 1 else ""} migrated to {current_year}. 🎉', 'success')
+            else:
+                flash(f'Year tracking enabled for {current_year}! Add students to get started. 🎉', 'success')
+            
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            flash(f'Migration error: {str(e)}. Your data is safe — try again.', 'error')
+            return redirect(url_for('migration_wizard'))
+    
+    # GET — show the wizard
+    students = get_all_students()
+    return render_template('migration_wizard.html',
+                         student_count=len(students),
+                         current_year='2026-27')
+
+
 # --- Student Routes ---
 
 @app.route('/students')
@@ -218,11 +263,11 @@ def student_add():
             'name': request.form.get('name', ''),
             'age': request.form.get('age', ''),
             'grade': request.form.get('grade', ''),
-            'iep_goals': [g.strip() for g in request.form.get('iep_goals', '').split('\n') if g.strip()],
+            'iep_goals': [g.strip() for g in request.form.get('iep_goals', '').split('\n\n') if g.strip()],
             'iep_annual_review_date': request.form.get('iep_annual_review_date', ''),
             'related_services': request.form.get('related_services', ''),
             'sdi_notes': request.form.get('sdi_notes', ''),
-            'physical_needs': [n.strip() for n in request.form.get('physical_needs', '').split('\n') if n.strip()],
+            'physical_needs': [n.strip() for n in request.form.get('physical_needs', '').split('\n\n') if n.strip()],
             'cognitive_needs': request.form.get('cognitive_needs', ''),
             'behavioral_needs': request.form.get('behavioral_needs', ''),
             'sensory_needs': request.form.get('sensory_needs', ''),
@@ -232,9 +277,9 @@ def student_add():
             'homeroom_duration': request.form.get('homeroom_duration', ''),
             'homeroom_aide_accompanies': request.form.get('homeroom_aide_accompanies') == 'yes',
             'homeroom_schedule': request.form.get('homeroom_schedule', ''),
-            'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n') if a.strip()],
+            'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n\n') if a.strip()],
             'reinforcers': request.form.get('reinforcers', ''),
-            'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n') if l.strip()],
+            'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n\n') if l.strip()],
             'notes': request.form.get('notes', '')
         }
         add_student(data)
@@ -255,11 +300,11 @@ def student_edit(student_id):
             'name': request.form.get('name', ''),
             'age': request.form.get('age', ''),
             'grade': request.form.get('grade', ''),
-            'iep_goals': [g.strip() for g in request.form.get('iep_goals', '').split('\n') if g.strip()],
+            'iep_goals': [g.strip() for g in request.form.get('iep_goals', '').split('\n\n') if g.strip()],
             'iep_annual_review_date': request.form.get('iep_annual_review_date', ''),
             'related_services': request.form.get('related_services', ''),
             'sdi_notes': request.form.get('sdi_notes', ''),
-            'physical_needs': [n.strip() for n in request.form.get('physical_needs', '').split('\n') if n.strip()],
+            'physical_needs': [n.strip() for n in request.form.get('physical_needs', '').split('\n\n') if n.strip()],
             'cognitive_needs': request.form.get('cognitive_needs', ''),
             'behavioral_needs': request.form.get('behavioral_needs', ''),
             'sensory_needs': request.form.get('sensory_needs', ''),
@@ -269,9 +314,9 @@ def student_edit(student_id):
             'homeroom_duration': request.form.get('homeroom_duration', ''),
             'homeroom_aide_accompanies': request.form.get('homeroom_aide_accompanies') == 'yes',
             'homeroom_schedule': request.form.get('homeroom_schedule', ''),
-            'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n') if a.strip()],
+            'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n\n') if a.strip()],
             'reinforcers': request.form.get('reinforcers', ''),
-            'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n') if l.strip()],
+            'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n\n') if l.strip()],
             'notes': request.form.get('notes', '')
         }
         update_student(student_id, data)
@@ -464,7 +509,7 @@ def schedule_setup():
     config = get_schedule_config()
     
     if request.method == 'POST':
-        config['num_dedicated_aides'] = int(request.form.get('num_dedicated_aides', 2))
+        config['num_dedicated_aides'] = int(request.form.get('num_dedicated_aides') or 2)
         config['aide_names'] = request.form.getlist('aide_names')
         # Ensure we have enough aide names
         while len(config['aide_names']) < config['num_dedicated_aides']:
@@ -473,15 +518,15 @@ def schedule_setup():
         
         config['has_floater'] = request.form.get('has_floater') == 'yes'
         config['floater_name'] = request.form.get('floater_name', 'Floater')
-        config['min_aides_in_own_room'] = int(request.form.get('min_aides_in_own_room', 1))
+        config['min_aides_in_own_room'] = int(request.form.get('min_aides_in_own_room') or 1)
         config['min_aides_in_partner_room'] = 1  # Hard rule: always 1 aide in partner room
         
         config['partner_teacher'] = {
             'enabled': request.form.get('partner_enabled') == 'yes',
             'name': request.form.get('partner_name', ''),
-            'num_aides': int(request.form.get('partner_num_aides', 2)),
-            'aide_names': [f"Partner Aide {i+1}" for i in range(int(request.form.get('partner_num_aides', 2)))],
-            'num_students': int(request.form.get('partner_num_students', 0)),
+            'num_aides': int(request.form.get('partner_num_aides') or 2),
+            'aide_names': [f"Partner Aide {i+1}" for i in range(int(request.form.get('partner_num_aides') or 2))],
+            'num_students': int(request.form.get('partner_num_students') or 0),
             'shared_floater': request.form.get('shared_floater') == 'yes',
             'notes': request.form.get('partner_notes', '')
         }
@@ -492,11 +537,14 @@ def schedule_setup():
         # Auto-generate schedule
         students = get_all_students()
         if students:
-            generated = generate_schedule(students, config)
-            schedule_file = os.path.join(DATA_DIR, 'current_schedule.json')
-            with open(schedule_file, 'w') as f:
-                json.dump(generated, f, indent=2)
-            flash('Staffing saved and schedule generated! 📅', 'success')
+            try:
+                generated = generate_schedule(students, config)
+                schedule_file = os.path.join(DATA_DIR, 'current_schedule.json')
+                with open(schedule_file, 'w') as f:
+                    json.dump(generated, f, indent=2, default=str)
+                flash('Staffing saved and schedule generated! 📅', 'success')
+            except Exception as e:
+                flash(f'Staffing saved, but schedule generation failed: {str(e)}. Try adding more student details.', 'error')
         else:
             flash('Staffing saved! Add students to generate a schedule.', 'success')
         
@@ -514,12 +562,15 @@ def generate_schedule_route():
         flash('Add students first before generating a schedule.', 'error')
         return redirect(url_for('schedule'))
     
-    generated = generate_schedule(students, config)
-    schedule_file = os.path.join(DATA_DIR, 'current_schedule.json')
-    with open(schedule_file, 'w') as f:
-        json.dump(generated, f, indent=2)
-    
-    flash('Schedule regenerated! ✅', 'success')
+    try:
+        generated = generate_schedule(students, config)
+        schedule_file = os.path.join(DATA_DIR, 'current_schedule.json')
+        with open(schedule_file, 'w') as f:
+            json.dump(generated, f, indent=2, default=str)
+        flash('Schedule regenerated! ✅', 'success')
+    except Exception as e:
+        flash(f'Schedule generation failed: {str(e)}. Check staffing setup and student details.', 'error')
+
     return redirect(url_for('schedule'))
 
 

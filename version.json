@@ -1,5 +1,6 @@
 {
-  "version": "2.3.0",
-  "release_date": "2026-08-17",
-  "min_python": "3.8"
+  "version": "2.4.0",
+  "release_date": "2026-08-22",
+  "min_python": "3.8",
+  "changelog": "Added year-over-year student lifecycle tracking (Phase 1: data model + migration + stage config)"
 }
