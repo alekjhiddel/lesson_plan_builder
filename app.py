@@ -855,8 +855,12 @@ def iep_arc_prep():
         if student:
             config = get_config()
             writer = IEPWriter()
-            prompt = writer.generate_arc_prep_prompt(student, config)
-            return render_template('prompt_display.html', prompt=prompt, plan_type='arc_prep')
+            try:
+                result = writer.generate_arc_prep(student)
+                prompt = result.get('prompt', '') if isinstance(result, dict) else str(result)
+                return render_template('prompt_display.html', prompt=prompt, plan_type='arc_prep')
+            except Exception as e:
+                flash(f'Error generating ARC prep: {str(e)}', 'error')
         flash('Please select a student.', 'error')
     return render_template('iep_arc_prep.html' if os.path.exists(os.path.join(app.template_folder, 'iep_arc_prep.html')) else 'generate.html',
                          students=students)
