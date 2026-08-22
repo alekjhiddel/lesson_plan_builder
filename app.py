@@ -772,6 +772,7 @@ def do_update():
 def restart_app():
     """Restart the Flask app after an update."""
     import subprocess
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
     # Start a new instance of the app, then exit this one
     script_path = os.path.join(APP_DIR, 'start.command')
     subprocess.Popen(['bash', script_path], start_new_session=True)
