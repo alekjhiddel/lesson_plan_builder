@@ -824,9 +824,26 @@ def iep_generate():
     
     config = get_config()
     writer = IEPWriter()
-    prompt = writer.generate_iep_prompt(student, config, iep_type)
     
-    return render_template('prompt_display.html', prompt=prompt, plan_type='iep')
+    try:
+        if iep_type == 'plaafp':
+            result = writer.generate_plaafp(student)
+        elif iep_type == 'goals':
+            domain = request.form.get('domain', 'communication')
+            result = writer.generate_goals(student, domain)
+        elif iep_type == 'sdi':
+            result = writer.generate_sdi_recommendations(student)
+        elif iep_type == 'arc_prep':
+            result = writer.generate_arc_prep(student)
+        else:
+            # Default to PLAAFP for 'full' or unknown types
+            result = writer.generate_plaafp(student)
+        
+        prompt = result.get('prompt', '') if isinstance(result, dict) else str(result)
+        return render_template('prompt_display.html', prompt=prompt, plan_type='iep')
+    except Exception as e:
+        flash(f'Error generating IEP content: {str(e)}', 'error')
+        return redirect(url_for('iep'))
 
 
 @app.route('/iep/arc-prep', methods=['GET', 'POST'])
