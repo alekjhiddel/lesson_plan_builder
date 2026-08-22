@@ -58,9 +58,9 @@
                       placeholder="e.g., Functions at 2-3 year old level, strong visual learner, needs hand-over-hand for new tasks, can match/sort but not count with meaning">{{ student.cognitive_needs if student else '' }}</textarea>
         </div>
         <div class="form-group">
-            <label for="physical_needs">Physical needs <span class="help-text">(one per line)</span></label>
+            <label for="physical_needs">Physical needs <span class="help-text">(separate with a blank line)</span></label>
             <textarea id="physical_needs" name="physical_needs" rows="3"
-                      placeholder="e.g.,&#10;Wheelchair user — transfers with 2-person assist&#10;Legally blind — needs high contrast, large print&#10;G-tube fed — no oral feeding&#10;Seizure disorder — see health plan">{{ student.physical_needs | join('\n') if student and student.physical_needs else '' }}</textarea>
+                      placeholder="e.g.,&#10;Wheelchair user — transfers with 2-person assist&#10;Legally blind — needs high contrast, large print&#10;G-tube fed — no oral feeding&#10;Seizure disorder — see health plan">{{ student.physical_needs | join('\n\n') if student and student.physical_needs else '' }}</textarea>
         </div>
         <div class="form-group">
             <label for="behavioral_needs">Behavioral needs</label>
@@ -89,12 +89,12 @@
     </div>
     
     <div class="form-section">
-        <h2>IEP Goals <span class="help-text">(one per line)</span></h2>
+        <h2>IEP Goals <span class="help-text">(separate with a blank line)</span></h2>
         <div class="form-group">
             <label for="iep_goals">Current IEP goals</label>
             <a href="{{ url_for('help_topic', topic_id='iep_goals') }}" class="help-icon" target="_blank" title="Help: IEP Goals">?</a>
             <textarea id="iep_goals" name="iep_goals" rows="8"
-                      placeholder="e.g.,&#10;Given a visual schedule, will independently transition between 3 activities with no more than 1 verbal prompt in 4/5 opportunities&#10;Will request preferred items/activities using AAC device in 8/10 trials across 3 consecutive sessions&#10;Will complete 3-step handwashing routine independently using visual task analysis in 4/5 trials&#10;Will identify 5 functional sight words (EXIT, STOP, his name, BOYS, PUSH) with 80% accuracy">{{ student.iep_goals | join('\n') if student and student.iep_goals else '' }}</textarea>
+                      placeholder="e.g.,&#10;Given a visual schedule, will independently transition between 3 activities with no more than 1 verbal prompt in 4/5 opportunities&#10;Will request preferred items/activities using AAC device in 8/10 trials across 3 consecutive sessions&#10;Will complete 3-step handwashing routine independently using visual task analysis in 4/5 trials&#10;Will identify 5 functional sight words (EXIT, STOP, his name, BOYS, PUSH) with 80% accuracy">{{ student.iep_goals | join('\n\n') if student and student.iep_goals else '' }}</textarea>
             <span class="help-text">Tip: Copy these directly from the IEP! Include the full measurable goal with criteria.</span>
         </div>
         <div class="form-row">
@@ -167,22 +167,22 @@
     </div>
     
     <div class="form-section">
-        <h2>Life Skills Priorities <span class="help-text">(one per line)</span></h2>
+        <h2>Life Skills Priorities <span class="help-text">(separate with a blank line)</span></h2>
         <div class="form-group">
             <label for="life_skills_priorities">What life skills are you working toward?</label>
             <a href="{{ url_for('help_topic', topic_id='life_skills') }}" class="help-icon" target="_blank" title="Help: Life Skills">?</a>
             <textarea id="life_skills_priorities" name="life_skills_priorities" rows="4"
-                      placeholder="e.g.,&#10;Toilet training (on a schedule, not yet self-initiating)&#10;Putting on/taking off coat independently&#10;Using a spoon without spilling&#10;Waiting without screaming (currently ~30 seconds max)&#10;Washing hands (can do with visual prompt)">{{ student.life_skills_priorities | join('\n') if student and student.life_skills_priorities else '' }}</textarea>
+                      placeholder="e.g.,&#10;Toilet training (on a schedule, not yet self-initiating)&#10;Putting on/taking off coat independently&#10;Using a spoon without spilling&#10;Waiting without screaming (currently ~30 seconds max)&#10;Washing hands (can do with visual prompt)">{{ student.life_skills_priorities | join('\n\n') if student and student.life_skills_priorities else '' }}</textarea>
             <span class="help-text">💡 These are the BIG goals — the skills that lead to independence</span>
         </div>
     </div>
     
     <div class="form-section">
-        <h2>Current Focus Areas <span class="help-text">(one per line)</span></h2>
+        <h2>Current Focus Areas <span class="help-text">(separate with a blank line)</span></h2>
         <div class="form-group">
             <label for="focus_areas">What are you actively working on right now?</label>
             <textarea id="focus_areas" name="focus_areas" rows="4"
-                      placeholder="e.g.,&#10;Requesting 'more' and 'help' with AAC&#10;Staying seated for 5 minutes&#10;Following 1-step directions with a visual&#10;Matching colors">{{ student.focus_areas | join('\n') if student and student.focus_areas else '' }}</textarea>
+                      placeholder="e.g.,&#10;Requesting 'more' and 'help' with AAC&#10;Staying seated for 5 minutes&#10;Following 1-step directions with a visual&#10;Matching colors">{{ student.focus_areas | join('\n\n') if student and student.focus_areas else '' }}</textarea>
         </div>
     </div>
     
