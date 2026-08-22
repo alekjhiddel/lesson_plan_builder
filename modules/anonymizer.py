@@ -31,6 +31,10 @@ class Anonymizer:
             anon_name = f"Child {i}"
             real_name = student['name']
             self.current_mapping[real_name] = anon_name
+            # Also map first name alone (IEP goals often use just first name)
+            first_name = real_name.split()[0] if ' ' in real_name else None
+            if first_name and first_name not in self.current_mapping:
+                self.current_mapping[first_name] = anon_name
             self.reverse_mapping[anon_name] = real_name
         
         # Save mapping for later de-anonymization
@@ -54,30 +58,40 @@ class Anonymizer:
     def anonymize_student_data(self, student):
         """
         Create an anonymized version of student data for prompt inclusion.
-        Keeps all IEP/needs info but removes the real name.
+        Keeps all IEP/needs info but replaces the real name everywhere —
+        including inside goal text, notes, and other free-text fields.
         """
         anon_name = self.current_mapping.get(student['name'], 'Unknown Child')
+        
+        def _scrub(value):
+            """Replace real names in a string or list of strings."""
+            if isinstance(value, str):
+                return self.anonymize_text(value, [student])
+            elif isinstance(value, list):
+                return [self.anonymize_text(item, [student]) if isinstance(item, str) else item for item in value]
+            return value
         
         return {
             'name': anon_name,
             'age': student.get('age', ''),
             'grade': student.get('grade', ''),
-            'iep_goals': student.get('iep_goals', []),
-            'related_services': student.get('related_services', ''),
-            'sdi_notes': student.get('sdi_notes', ''),
-            'physical_needs': student.get('physical_needs', []),
-            'cognitive_needs': student.get('cognitive_needs', ''),
-            'behavioral_needs': student.get('behavioral_needs', ''),
-            'sensory_needs': student.get('sensory_needs', ''),
-            'communication_mode': student.get('communication_mode', ''),
-            'communication_details': student.get('communication_details', ''),
-            'reinforcers': student.get('reinforcers', ''),
-            'life_skills_priorities': student.get('life_skills_priorities', []),
+            'iep_goals': _scrub(student.get('iep_goals', [])),
+            'related_services': _scrub(student.get('related_services', '')),
+            'sdi_notes': _scrub(student.get('sdi_notes', '')),
+            'physical_needs': _scrub(student.get('physical_needs', [])),
+            'cognitive_needs': _scrub(student.get('cognitive_needs', '')),
+            'behavioral_needs': _scrub(student.get('behavioral_needs', '')),
+            'sensory_needs': _scrub(student.get('sensory_needs', '')),
+            'communication_mode': _scrub(student.get('communication_mode', '')),
+            'communication_details': _scrub(student.get('communication_details', '')),
+            'reinforcers': _scrub(student.get('reinforcers', '')),
+            'life_skills_priorities': _scrub(student.get('life_skills_priorities', [])),
             'homeroom_attends': student.get('homeroom_attends', False),
             'homeroom_duration': student.get('homeroom_duration', ''),
             'homeroom_aide_accompanies': student.get('homeroom_aide_accompanies', False),
             'homeroom_schedule': student.get('homeroom_schedule', ''),
-            'focus_areas': student.get('focus_areas', []),
+            'focus_areas': _scrub(student.get('focus_areas', [])),
+            'notes': _scrub(student.get('notes', '')),
         }
     
     def deanonymize_text(self, text, mapping_id=None):
