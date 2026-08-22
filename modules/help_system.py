@@ -19,7 +19,7 @@ HELP_TOPICS = {
     'iep_goals': {
         'title': 'IEP Goals',
         'category': 'Student Profiles',
-        'content': '<h2>IEP Goals</h2><p>Copy your student\'s measurable annual goals directly from their IEP. One goal per line.</p><h3>What makes a good measurable goal?</h3><p>Kentucky IEPs require goals with:</p><ul><li><strong>Condition</strong> - Under what circumstances? ("Given a visual schedule...")</li><li><strong>Behavior</strong> - What observable action? ("...will independently transition...")</li><li><strong>Criteria</strong> - How well? ("...in 4 out of 5 opportunities across 3 consecutive sessions")</li></ul><h3>Examples for MSD:</h3><ul><li>Given a visual task analysis, will complete 5-step handwashing in 4/5 trials for 3 sessions.</li><li>When presented with 2 choices on AAC, will select desired item in 8/10 opportunities.</li></ul><h3>Examples for LBD:</h3><ul><li>Given grade-level text, will answer comprehension questions with 80% accuracy on 3 probes.</li></ul><p><strong>Tip:</strong> Copy these exactly from the IEP - SPARK uses them for progress reports and lesson planning.</p>'
+        'content': '<h2>IEP Goals</h2><p>Copy your student\'s measurable annual goals directly from their IEP. Separate each goal with a blank line.</p><h3>What makes a good measurable goal?</h3>
     },
     'behavioral_needs': {
         'title': 'Behavioral Needs',

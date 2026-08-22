@@ -45,7 +45,7 @@ def get_default_config():
             {'name': 'Snack / Life Skills', 'start': '9:40', 'end': '10:00', 'type': 'routine'},
             {'name': 'Specials / Recess', 'start': '10:00', 'end': '10:30', 'type': 'specials'},
             {'name': '1:1 Aide Time Block 1', 'start': '10:30', 'end': '11:15', 'type': 'individual'},
-            {'name': 'Lunch', 'start': '11:15', 'end': '11:45', 'type': 'routine'},
+            {'name': 'Lunch (classroom)', 'start': '11:15', 'end': '11:45', 'type': 'routine'},
             {'name': 'Rest / Sensory', 'start': '11:45', 'end': '12:05', 'type': 'sensory'},
             {'name': 'Centers Block 2', 'start': '12:05', 'end': '1:05', 'type': 'centers'},
             {'name': 'Story / Group', 'start': '1:05', 'end': '1:25', 'type': 'whole_group'},
