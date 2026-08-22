@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}SPARK — Year Tracking Setup{% endblock %}
+
+{% block content %}
+<div class="setup-wizard-container" style="max-width: 700px; margin: 40px auto;">
+    <div class="step-header" style="text-align: center; margin-bottom: 30px;">
+        <h2>🎉 SPARK has been updated!</h2>
+        <p class="step-subtitle">New feature: <strong>Year-over-Year Student Tracking</strong></p>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Track student progress across school years, manage transitions, and generate handoff notes.
+            This one-time setup takes about 30 seconds.
+        </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('migration_wizard') }}" class="card" style="padding: 30px;">
+        <!-- Current Year -->
+        <div class="form-group" style="margin-bottom: 24px;">
+            <label for="current_year" style="font-weight: 600; font-size: 1rem;">
+                📅 What school year are we in?
+            </label>
+            <input type="text" id="current_year" name="current_year" 
+                   class="form-input" value="2026-27" 
+                   placeholder="e.g., 2026-27"
+                   style="max-width: 200px;">
+            <span class="form-hint">Format: YYYY-YY (start year - end year)</span>
+        </div>
+
+        <!-- Stage Selection -->
+        <div class="form-group" style="margin-bottom: 24px;">
+            <label style="font-weight: 600; font-size: 1rem; margin-bottom: 12px; display: block;">
+                🏫 What stage of the pipeline do you teach?
+            </label>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">
+                This determines grade ranges and transition rules for your students.
+            </p>
+            
+            <div class="stage-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <label class="stage-option" style="display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="stage" value="preschool" style="margin-top: 3px;">
+                    <div>
+                        <strong>Pre-School</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Ages 3-5 • Pre-K Years</div>
+                    </div>
+                </label>
+                
+                <label class="stage-option" style="display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="stage" value="elementary" checked>
+                    <div>
+                        <strong>Elementary</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">K – 4th Grade</div>
+                    </div>
+                </label>
+                
+                <label class="stage-option" style="display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="stage" value="middle">
+                    <div>
+                        <strong>Middle School</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">5th – 8th Grade</div>
+                    </div>
+                </label>
+                
+                <label class="stage-option" style="display: flex; align-items: flex-start; gap: 10px; padding: 14px; border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="stage" value="high_school">
+                    <div>
+                        <strong>High School</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">9th – 12th (up to age 21)</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Stage Info Display -->
+        <div id="stageInfo" class="alert alert-info" style="margin-bottom: 24px; display: none;">
+            <strong>Grade range:</strong> <span id="gradeRange"></span><br>
+            <strong>Students transition to:</strong> <span id="transitionTo"></span>
+        </div>
+
+        <!-- What happens -->
+        <div style="background: var(--bg-muted, #f8f9fa); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <p style="font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">What happens when you click "Set Up":</p>
+            <ul style="font-size: 0.85rem; color: var(--text-muted); margin: 0; padding-left: 20px;">
+                {% if student_count > 0 %}
+                <li>Your {{ student_count }} existing student{{ 's' if student_count != 1 }} will be tagged as "{{ current_year or '2026-27' }}" year</li>
+                <li>Nothing is deleted — your data is safely restructured</li>
+                {% else %}
+                <li>Year tracking will be initialized for any students you add</li>
+                {% endif %}
+                <li>You'll see a new "History" view on student profiles (once you complete a year)</li>
+                <li>End-of-year and transition features will become available</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center;">
+            <button type="submit" class="btn btn-primary" style="padding: 12px 32px; font-size: 1rem;">
+                ✨ Set Up Year Tracking
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .stage-option:has(input:checked) {
+        border-color: var(--primary, #00b894) !important;
+        background: rgba(0, 184, 148, 0.05);
+    }
+    .stage-option:hover {
+        border-color: var(--primary, #00b894);
+    }
+</style>
+
+<script>
+const stageData = {
+    preschool: { grades: 'Pre-K Year 1, Pre-K Year 2, Pre-K Year 3', transition: 'Elementary' },
+    elementary: { grades: 'K, 1st, 2nd, 3rd, 4th', transition: 'Middle School' },
+    middle: { grades: '5th, 6th, 7th, 8th', transition: 'High School' },
+    high_school: { grades: '9th, 10th, 11th, 12th (up to age 21)', transition: 'Post-Secondary Transition' }
+};
+
+document.querySelectorAll('input[name="stage"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const info = stageData[this.value];
+        document.getElementById('gradeRange').textContent = info.grades;
+        document.getElementById('transitionTo').textContent = info.transition;
+        document.getElementById('stageInfo').style.display = 'block';
+    });
+});
+
+// Show default selection info
+const checked = document.querySelector('input[name="stage"]:checked');
+if (checked) checked.dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

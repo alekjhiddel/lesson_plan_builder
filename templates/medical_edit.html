@@ -12,8 +12,8 @@
     <div class="form-section">
         <h2>⚠️ Allergies & Dietary Restrictions</h2>
         <div class="form-group">
-            <label for="allergies">Allergies (one per line)</label>
-            <textarea id="allergies" name="allergies" rows="3" class="form-control" placeholder="e.g. Peanuts&#10;Latex&#10;Bee stings">{{ medical.get('allergies', [])|join('\n') }}</textarea>
+            <label for="allergies">Allergies (separate with a blank line)</label>
+            <textarea id="allergies" name="allergies" rows="3" class="form-control" placeholder="e.g. Peanuts&#10;&#10;Latex&#10;&#10;Bee stings">{{ medical.get('allergies', [])|join('\n\n') }}</textarea>
         </div>
         <div class="form-group">
             <label for="dietary_restrictions">Dietary Restrictions</label>
