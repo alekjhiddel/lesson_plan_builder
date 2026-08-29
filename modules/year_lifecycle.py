@@ -68,6 +68,11 @@ def set_current_year(year_string):
     }
     with open(CURRENT_YEAR_FILE, 'w') as f:
         json.dump(data, f, indent=2)
+    
+    # Clear ability/goal groups for the new year (fresh start)
+    from modules.group_manager import reset_all_groups
+    reset_all_groups()
+    
     return data
 
 

@@ -8,6 +8,7 @@ Incorporates Kentucky-specific IEP requirements (707 KAR 1:320).
 import os
 import json
 from datetime import datetime
+from .group_manager import get_all_groups, get_instruction_level, calculate_ability_score
 from .anonymizer import Anonymizer
 from .scheduler import get_scheduling_context, get_current_themes, get_themes_for_month
 from .student_manager import get_all_students
@@ -47,6 +48,12 @@ class PromptBuilder:
         
         # 4. Student profiles (anonymized)
         sections.append(self._build_students_section(students))
+        
+        # 4b. Group context (if groups exist and plan type uses them)
+        if plan_type in ('small_group', 'mixed'):
+            groups_section = self._build_groups_section(students)
+            if groups_section:
+                sections.append(groups_section)
         
         # 5. Scheduling context and themes
         sections.append(self._build_schedule_section(month_override, custom_theme))
@@ -202,6 +209,86 @@ DAILY STRUCTURE PRIORITIES:
                 section += "\n"
             else:
                 section += "Homeroom: Does not attend general education homeroom\n"
+        
+        return section
+    
+    def _build_groups_section(self, students):
+        """Build the ability/goal group context for the prompt."""
+        all_groups = get_all_groups()
+        if not all_groups:
+            return ""
+        
+        # Build a student lookup by ID (using anonymized names)
+        student_lookup = {}
+        for student in students:
+            anon = self.anonymizer.anonymize_student_data(student)
+            student_lookup[student['id']] = {
+                'anon_name': anon['name'],
+                'student': student
+            }
+        
+        section = "ABILITY GROUPS:\n"
+        section += "(Students are grouped by similar functional levels for differentiated instruction)\n\n"
+        
+        # Ability groups first
+        ability_groups = [g for g in all_groups if g.get('group_type') == 'ability']
+        for group in ability_groups:
+            member_count = 0
+            member_lines = []
+            scores = []
+            
+            for sid in group.get('student_ids', []):
+                if sid in student_lookup:
+                    info = student_lookup[sid]
+                    student = info['student']
+                    ability = student.get('ability_level', {})
+                    score = calculate_ability_score(student)
+                    scores.append(score)
+                    
+                    func = ability.get('functional_level', 'unknown')
+                    comm = ability.get('communication_tier', 'unknown')
+                    indep = ability.get('independence_tier', 'unknown')
+                    acad = ability.get('academic_access', 'unknown')
+                    
+                    member_lines.append(
+                        f"  - {info['anon_name']}: {func} functional, "
+                        f"{comm}, {indep} prompting, {acad} access"
+                    )
+                    member_count += 1
+            
+            if member_count == 0:
+                continue
+            
+            avg_score = sum(scores) / len(scores) if scores else 0
+            instruction = get_instruction_level(avg_score)
+            
+            section += f"Group {group['name']} ({member_count} students):\n"
+            section += '\n'.join(member_lines) + '\n'
+            section += f"  GROUP INSTRUCTION LEVEL: {instruction}\n\n"
+        
+        # Goal groups
+        goal_groups = [g for g in all_groups if g.get('group_type') == 'goal']
+        if goal_groups:
+            section += "\nGOAL-BASED GROUPS:\n"
+            section += "(Students grouped by shared IEP goal areas)\n\n"
+            
+            for group in goal_groups:
+                members = [student_lookup[sid]['anon_name'] 
+                          for sid in group.get('student_ids', [])
+                          if sid in student_lookup]
+                if not members:
+                    continue
+                
+                tags = ', '.join(group.get('goal_tags', []))
+                section += f"Group {group['name']} — {tags} ({len(members)} students):\n"
+                section += f"  Members: {', '.join(members)}\n"
+                if group.get('description'):
+                    section += f"  Focus: {group['description']}\n"
+                section += '\n'
+        
+        section += """IMPORTANT: Within each group, every child must have a meaningful role. The activity
+should challenge the highest-ability child in the group WITHOUT leaving the lowest-ability
+child unable to participate. Use tiered task analysis — same activity, different access points.\n"""
         
         return section
     
@@ -368,6 +455,40 @@ FORMAT:
 - ONE page per student per day
 - Large text, simple language, no jargon
 - An aide with no special education training should understand this completely"""
+        
+        elif plan_type == 'small_group':
+            request_text = """PLEASE GENERATE:
+
+**SMALL GROUP LESSON PLANS** for each ability group listed above.
+
+For EACH GROUP, create a plan that includes:
+- **Group name and members**
+- **Shared activity** (one activity the whole group does together)
+- **Tiered task analysis** — for each student in the group:
+  * Their specific role/task level within the activity
+  * Prompting level expected
+  * What "success" looks like for THIS student
+  * Data collection target
+- **Materials** (what's needed, noting any student-specific adaptations)
+- **Setup and procedure** (step-by-step, written for an aide)
+- **IEP goals addressed** per student
+- **Backup plan** if a student is struggling
+
+Remember: SAME activity, DIFFERENT access points. Every child participates meaningfully."""
+        
+        elif plan_type == 'mixed':
+            request_text = """PLEASE GENERATE:
+
+**MIXED FORMAT LESSON PLANS** combining:
+1. **Whole-class activities** (morning meeting, closing circle, group cooking/art)
+2. **Small group plans** for each ability group (centers, targeted instruction)
+3. **Individual 1:1 plans** for each student's aide time
+
+Use the ability groups listed above to differentiate the small-group portions.
+Whole-class activities should be accessible to ALL students with tiered participation.
+Individual plans target each student's specific IEP goals.
+
+FORMAT: Organize by time block — show who is where, doing what, with whom."""
         
         else:
             request_text = f"""PLEASE GENERATE a {plan_type} lesson plan following the classroom structure and IEP integration described above."""

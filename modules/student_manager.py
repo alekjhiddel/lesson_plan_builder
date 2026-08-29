@@ -95,6 +95,14 @@ def add_student(student_data):
         'reinforcers': student_data.get('reinforcers', ''),
         'prompting_level': student_data.get('prompting_level', ''),
         'life_skills_priorities': student_data.get('life_skills_priorities', []),
+        # Ability Level (for grouping)
+        'ability_level': student_data.get('ability_level', {
+            'functional_level': '',
+            'communication_tier': '',
+            'independence_tier': '',
+            'academic_access': '',
+            'custom_notes': ''
+        }),
         # Notes
         'notes': student_data.get('notes', ''),
         'progress_notes': student_data.get('progress_notes', []),

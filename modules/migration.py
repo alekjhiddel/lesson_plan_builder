@@ -23,6 +23,7 @@ PROFILE_FIELDS = {
     'homeroom_attends', 'homeroom_duration', 'homeroom_aide_accompanies', 'homeroom_schedule',
     'reinforcers', 'prompting_level',
     'related_services', 'sdi_notes',
+    'ability_level',
     'iep_annual_review_date',
     'notes',
     'created_at', 'updated_at'
