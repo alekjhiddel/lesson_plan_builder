@@ -51,6 +51,65 @@
     </div>
     
     <div class="form-section">
+        <h2>Ability Profile <span class="help-text">(for grouping)</span></h2>
+        <p class="help-text">These levels help SPARK suggest which students can work together in small groups. Choose the level that best describes this student right now.</p>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="functional_level">Functional Level</label>
+                <select id="functional_level" name="functional_level">
+                    <option value="">-- Select --</option>
+                    <option value="pre-emerging" {{ 'selected' if student and student.ability_level and student.ability_level.functional_level == 'pre-emerging' }}>Pre-Emerging (needs full physical support)</option>
+                    <option value="emerging" {{ 'selected' if student and student.ability_level and student.ability_level.functional_level == 'emerging' }}>Emerging (beginning to participate with heavy support)</option>
+                    <option value="developing" {{ 'selected' if student and student.ability_level and student.ability_level.functional_level == 'developing' }}>Developing (participates with moderate support)</option>
+                    <option value="functional" {{ 'selected' if student and student.ability_level and student.ability_level.functional_level == 'functional' }}>Functional (participates with minimal support)</option>
+                </select>
+                <span class="help-text">Overall daily living / adaptive skill level</span>
+            </div>
+            <div class="form-group">
+                <label for="communication_tier">Communication Tier</label>
+                <select id="communication_tier" name="communication_tier">
+                    <option value="">-- Select --</option>
+                    <option value="pre-verbal" {{ 'selected' if student and student.ability_level and student.ability_level.communication_tier == 'pre-verbal' }}>Pre-Verbal (no reliable communication yet)</option>
+                    <option value="single-words" {{ 'selected' if student and student.ability_level and student.ability_level.communication_tier == 'single-words' }}>Single Words (1-word requests/labels)</option>
+                    <option value="phrases" {{ 'selected' if student and student.ability_level and student.ability_level.communication_tier == 'phrases' }}>Phrases (2-3 word combinations)</option>
+                    <option value="sentences" {{ 'selected' if student and student.ability_level and student.ability_level.communication_tier == 'sentences' }}>Sentences (full sentences, may be scripted)</option>
+                </select>
+                <span class="help-text">How they communicate (any mode — verbal, AAC, PECS, signs)</span>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="independence_tier">Independence / Prompting Level</label>
+                <select id="independence_tier" name="independence_tier">
+                    <option value="">-- Select --</option>
+                    <option value="full-physical" {{ 'selected' if student and student.ability_level and student.ability_level.independence_tier == 'full-physical' }}>Full Physical (hand-over-hand for most tasks)</option>
+                    <option value="partial-physical" {{ 'selected' if student and student.ability_level and student.ability_level.independence_tier == 'partial-physical' }}>Partial Physical (gentle touch/nudge prompts)</option>
+                    <option value="gestural" {{ 'selected' if student and student.ability_level and student.ability_level.independence_tier == 'gestural' }}>Gestural (pointing, modeling)</option>
+                    <option value="verbal" {{ 'selected' if student and student.ability_level and student.ability_level.independence_tier == 'verbal' }}>Verbal (responds to spoken directions)</option>
+                    <option value="independent" {{ 'selected' if student and student.ability_level and student.ability_level.independence_tier == 'independent' }}>Independent (self-directed with visual supports)</option>
+                </select>
+                <span class="help-text">How much support they need for most tasks</span>
+            </div>
+            <div class="form-group">
+                <label for="academic_access">Academic Access Level</label>
+                <select id="academic_access" name="academic_access">
+                    <option value="">-- Select --</option>
+                    <option value="sensory" {{ 'selected' if student and student.ability_level and student.ability_level.academic_access == 'sensory' }}>Sensory (learns through touch, movement, cause-effect)</option>
+                    <option value="concrete" {{ 'selected' if student and student.ability_level and student.ability_level.academic_access == 'concrete' }}>Concrete (real objects, manipulatives)</option>
+                    <option value="pictorial" {{ 'selected' if student and student.ability_level and student.ability_level.academic_access == 'pictorial' }}>Pictorial (pictures, symbols, visual schedules)</option>
+                    <option value="symbolic" {{ 'selected' if student and student.ability_level and student.ability_level.academic_access == 'symbolic' }}>Symbolic (letters, numbers, written words)</option>
+                </select>
+                <span class="help-text">How they access learning materials</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="ability_custom_notes">Ability notes <span class="optional">(optional)</span></label>
+            <textarea id="ability_custom_notes" name="ability_custom_notes" rows="2"
+                      placeholder="e.g., Scores much higher on communication than independence — very verbal but physically limited. Groups best with moderate-support kids.">{{ student.ability_level.custom_notes if student and student.ability_level and student.ability_level.custom_notes else '' }}</textarea>
+        </div>
+    </div>
+    
+    <div class="form-section">
         <h2>Needs & Profile</h2>
         <div class="form-group">
             <label for="cognitive_needs">Cognitive profile</label>

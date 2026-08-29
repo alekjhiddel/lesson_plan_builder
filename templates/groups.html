@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Student Groups - SPARK{% endblock %}
+{% block nav_groups %}active{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>👥 Student Groups</h1>
+    <p class="subtitle">Organize students by ability level or shared IEP goals</p>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{% endwith %}
+
+<!-- Action Bar -->
+<div class="form-section" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; padding: 1rem 1.5rem;">
+    <form method="POST" action="{{ url_for('groups_auto') }}" style="margin: 0;">
+        <button type="submit" class="btn btn-primary">🔄 Auto-Group by Ability</button>
+    </form>
+    <button class="btn btn-secondary" onclick="document.getElementById('newGroupModal').style.display='flex'">
+        + New Group
+    </button>
+    <span class="help-text" style="margin-left: auto;">
+        {{ ability_groups | length }} ability group{{ 's' if ability_groups | length != 1 }} · 
+        {{ goal_groups | length }} goal group{{ 's' if goal_groups | length != 1 }} · 
+        {{ ungrouped | length }} ungrouped
+    </span>
+</div>
+
+<!-- Ability Groups -->
+{% if ability_groups %}
+<div class="form-section">
+    <h2>🎯 Ability Groups</h2>
+    <p class="help-text">Students grouped by similar functional levels — set at start of year, mostly stable</p>
+    
+    {% for group in ability_groups %}
+    <div class="group-card" style="border-left: 4px solid {{ group.color }}; margin-bottom: 1.5rem; padding: 1rem 1.5rem; background: #fafafa; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+                <h3 style="margin: 0; display: inline;">
+                    <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: {{ group.color }}; margin-right: 0.5rem;"></span>
+                    {{ group.name }} Group
+                </h3>
+                <span class="chip" style="background: #e3f2fd; color: #1565c0; font-size: 0.75rem; margin-left: 0.5rem;">Ability</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <form method="POST" action="{{ url_for('group_delete', group_id=group.id) }}" 
+                      onsubmit="return confirm('Delete the {{ group.name }} group? Students won\'t be deleted.')">
+                    <button type="submit" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">🗑 Delete</button>
+                </form>
+            </div>
+        </div>
+        
+        {% if group.description %}
+        <p class="help-text" style="margin: 0.25rem 0 0.75rem;">{{ group.description }}</p>
+        {% endif %}
+        {% if group.instruction_level %}
+        <p style="margin: 0.25rem 0 0.75rem; font-size: 0.85rem; color: #555;">
+            <strong>Instruction level:</strong> {{ group.instruction_level }}
+        </p>
+        {% endif %}
+        
+        <div class="student-chips" style="margin-bottom: 0.75rem;">
+            {% for sid in group.student_ids %}
+                {% set student = students_by_id.get(sid) %}
+                {% if student %}
+                <span class="chip" style="border-left: 3px solid {{ group.color }};">
+                    {{ student.name }}
+                    {% set ability = student.ability_level if student.ability_level else {} %}
+                    {% if ability.functional_level %}
+                        <span title="Functional: {{ ability.functional_level }}" style="font-size: 0.7rem;">
+                            {% if ability.functional_level == 'pre-emerging' %}🔴
+                            {% elif ability.functional_level == 'emerging' %}🟡
+                            {% elif ability.functional_level == 'developing' %}🟢
+                            {% elif ability.functional_level == 'functional' %}🔵
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('group_remove_student', group_id=group.id) }}" style="display: inline; margin-left: 0.25rem;">
+                        <input type="hidden" name="student_id" value="{{ sid }}">
+                        <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 0.7rem; color: #999;" title="Remove from group">✕</button>
+                    </form>
+                </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <!-- Add student to this group -->
+        <form method="POST" action="{{ url_for('group_add_student', group_id=group.id) }}" style="display: flex; gap: 0.5rem; align-items: center;">
+            <select name="student_id" style="flex: 1; padding: 0.3rem; font-size: 0.85rem;">
+                <option value="">+ Add student...</option>
+                {% for s in all_students %}
+                    {% if s.id not in group.student_ids %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Add</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Goal Groups -->
+{% if goal_groups %}
+<div class="form-section">
+    <h2>📋 Goal Groups</h2>
+    <p class="help-text">Students grouped by shared IEP goal areas — may shift when individual IEPs renew</p>
+    
+    {% for group in goal_groups %}
+    <div class="group-card" style="border-left: 4px solid {{ group.color }}; margin-bottom: 1.5rem; padding: 1rem 1.5rem; background: #fafafa; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+                <h3 style="margin: 0; display: inline;">{{ group.name }}</h3>
+                <span class="chip" style="background: #fce4ec; color: #c62828; font-size: 0.75rem; margin-left: 0.5rem;">Goal</span>
+                {% if group.goal_tags %}
+                <span class="help-text" style="margin-left: 0.5rem;">Tags: {{ group.goal_tags | join(', ') }}</span>
+                {% endif %}
+            </div>
+            <form method="POST" action="{{ url_for('group_delete', group_id=group.id) }}" 
+                  onsubmit="return confirm('Delete this goal group?')">
+                <button type="submit" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">🗑 Delete</button>
+            </form>
+        </div>
+        
+        {% if group.description %}
+        <p class="help-text" style="margin: 0 0 0.75rem;">{{ group.description }}</p>
+        {% endif %}
+        
+        <div class="student-chips" style="margin-bottom: 0.75rem;">
+            {% for sid in group.student_ids %}
+                {% set student = students_by_id.get(sid) %}
+                {% if student %}
+                <span class="chip" style="border-left: 3px solid {{ group.color }};">
+                    {{ student.name }}
+                    <form method="POST" action="{{ url_for('group_remove_student', group_id=group.id) }}" style="display: inline; margin-left: 0.25rem;">
+                        <input type="hidden" name="student_id" value="{{ sid }}">
+                        <button type="submit" style="background: none; border: none; cursor: pointer; font-size: 0.7rem; color: #999;" title="Remove from group">✕</button>
+                    </form>
+                </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <form method="POST" action="{{ url_for('group_add_student', group_id=group.id) }}" style="display: flex; gap: 0.5rem; align-items: center;">
+            <select name="student_id" style="flex: 1; padding: 0.3rem; font-size: 0.85rem;">
+                <option value="">+ Add student...</option>
+                {% for s in all_students %}
+                    {% if s.id not in group.student_ids %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Add</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Ungrouped Students -->
+{% if ungrouped %}
+<div class="form-section">
+    <h2>👤 Ungrouped Students</h2>
+    <p class="help-text">These students aren't in any ability group yet. Set their Ability Profile first, then use Auto-Group.</p>
+    <div class="student-chips">
+        {% for student in ungrouped %}
+        <span class="chip">
+            <a href="{{ url_for('student_edit', student_id=student.id) }}" style="text-decoration: none; color: inherit;">
+                {{ student.name }}
+                {% set ability = student.ability_level if student.ability_level else {} %}
+                {% if not ability.functional_level %}
+                    <span style="font-size: 0.7rem; color: #999;">⚪ needs assessment</span>
+                {% else %}
+                    {% if ability.functional_level == 'pre-emerging' %}🔴
+                    {% elif ability.functional_level == 'emerging' %}🟡
+                    {% elif ability.functional_level == 'developing' %}🟢
+                    {% elif ability.functional_level == 'functional' %}🔵
+                    {% endif %}
+                {% endif %}
+            </a>
+        </span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if not ability_groups and not goal_groups and not ungrouped %}
+<div class="alert alert-info">
+    <strong>No students yet!</strong> 
+    <a href="{{ url_for('student_add') }}">Add students</a> and set their ability levels, then come back here to group them.
+</div>
+{% endif %}
+
+<!-- New Group Modal -->
+<div id="newGroupModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+        <h2 style="margin-top: 0;">Create New Group</h2>
+        <form method="POST" action="{{ url_for('groups_page') }}">
+            <div class="form-group">
+                <label for="group_name">Group Name</label>
+                <input type="text" id="group_name" name="name" required placeholder="e.g., Red, Requesting, Fine Motor">
+            </div>
+            <div class="form-group">
+                <label for="group_type">Group Type</label>
+                <select id="group_type" name="group_type" onchange="document.getElementById('goalTagsField').style.display = this.value === 'goal' ? 'block' : 'none'">
+                    <option value="ability">Ability Group (by functional level)</option>
+                    <option value="goal">Goal Group (by shared IEP goals)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="group_color">Color</label>
+                <select id="group_color" name="color">
+                    <option value="#F44336">🔴 Red</option>
+                    <option value="#2196F3">🔵 Blue</option>
+                    <option value="#4CAF50">🟢 Green</option>
+                    <option value="#FF9800">🟠 Orange</option>
+                    <option value="#9C27B0">🟣 Purple</option>
+                    <option value="#795548">🟤 Brown</option>
+                </select>
+            </div>
+            <div id="goalTagsField" class="form-group" style="display: none;">
+                <label for="goal_tags">Goal Tags (comma-separated)</label>
+                <input type="text" id="goal_tags" name="goal_tags" placeholder="e.g., requesting, functional-communication">
+                <span class="help-text">Keywords that describe the IEP goal area this group targets</span>
+            </div>
+            <div class="form-group">
+                <label for="group_description">Description <span class="optional">(optional)</span></label>
+                <textarea id="group_description" name="description" rows="2" placeholder="Brief description of this group's focus"></textarea>
+            </div>
+            <div class="form-actions" style="margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary">Create Group</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('newGroupModal').style.display='none'">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="form-section" style="padding: 1rem 1.5rem;">
+    <p class="help-text" style="margin: 0;">
+        <strong>Ability dots:</strong> 
+        🔴 Pre-emerging · 🟡 Emerging · 🟢 Developing · 🔵 Functional · ⚪ Not assessed
+    </p>
+</div>
+
+{% endblock %}
