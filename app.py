@@ -78,6 +78,12 @@ from modules.year_lifecycle import (
 )
 from modules.migration import needs_migration, migrate_to_year_aware
 
+from modules.group_manager import (
+    get_all_groups, get_groups_by_type, get_group, create_group,
+    update_group, delete_group, add_student_to_group, remove_student_from_group,
+    move_student_between_groups, get_ungrouped_students, auto_group_by_ability,
+    accept_auto_groups, get_group_summary
+)
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -280,7 +286,14 @@ def student_add():
             'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n\n') if a.strip()],
             'reinforcers': request.form.get('reinforcers', ''),
             'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n\n') if l.strip()],
-            'notes': request.form.get('notes', '')
+            'notes': request.form.get('notes', ''),
+            'ability_level': {
+                'functional_level': request.form.get('functional_level', ''),
+                'communication_tier': request.form.get('communication_tier', ''),
+                'independence_tier': request.form.get('independence_tier', ''),
+                'academic_access': request.form.get('academic_access', ''),
+                'custom_notes': request.form.get('ability_custom_notes', '')
+            }
         }
         add_student(data)
         flash(f'{data["name"]} has been added! ✨', 'success')
@@ -317,7 +330,14 @@ def student_edit(student_id):
             'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n\n') if a.strip()],
             'reinforcers': request.form.get('reinforcers', ''),
             'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n\n') if l.strip()],
-            'notes': request.form.get('notes', '')
+            'notes': request.form.get('notes', ''),
+            'ability_level': {
+                'functional_level': request.form.get('functional_level', ''),
+                'communication_tier': request.form.get('communication_tier', ''),
+                'independence_tier': request.form.get('independence_tier', ''),
+                'academic_access': request.form.get('academic_access', ''),
+                'custom_notes': request.form.get('ability_custom_notes', '')
+            }
         }
         update_student(student_id, data)
         flash(f'{data["name"]}\'s profile has been updated! ✅', 'success')
@@ -332,6 +352,95 @@ def student_delete(student_id):
     delete_student(student_id)
     flash(f'{name} has been removed.', 'info')
     return redirect(url_for('students_list'))
+
+
+# --- Groups Routes ---
+
+@app.route('/groups', methods=['GET', 'POST'])
+def groups_page():
+    """Groups management page. GET shows groups, POST creates a new group."""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        group_type = request.form.get('group_type', 'ability')
+        color = request.form.get('color', '#9E9E9E')
+        description = request.form.get('description', '')
+        goal_tags = [t.strip() for t in request.form.get('goal_tags', '').split(',') if t.strip()]
+        
+        if name:
+            create_group(name=name, group_type=group_type, color=color,
+                        description=description, goal_tags=goal_tags)
+            flash(f'Group "{name}" created! ✨', 'success')
+        return redirect(url_for('groups_page'))
+    
+    all_students = get_all_students()
+    students_by_id = {s['id']: s for s in all_students}
+    ability_groups = get_groups_by_type('ability')
+    goal_groups = get_groups_by_type('goal')
+    ungrouped = get_ungrouped_students(all_students, 'ability')
+    
+    return render_template('groups.html',
+                         all_students=all_students,
+                         students_by_id=students_by_id,
+                         ability_groups=ability_groups,
+                         goal_groups=goal_groups,
+                         ungrouped=ungrouped)
+
+
+@app.route('/groups/auto', methods=['POST'])
+def groups_auto():
+    """Run auto-grouping algorithm on all students with ability levels."""
+    students = get_all_students()
+    # Filter to students who have ability levels set
+    assessed = [s for s in students if s.get('ability_level', {}).get('functional_level')]
+    
+    if len(assessed) < 2:
+        flash('Need at least 2 students with ability levels set to auto-group. '
+              'Edit student profiles to set their Ability Profile first.', 'warning')
+        return redirect(url_for('groups_page'))
+    
+    suggested = auto_group_by_ability(assessed)
+    accepted = accept_auto_groups(suggested)
+    
+    group_names = [g['name'] for g in suggested]
+    flash(f'Auto-grouped {len(assessed)} students into {len(suggested)} groups: '
+          f'{", ".join(group_names)}. You can adjust as needed.', 'success')
+    return redirect(url_for('groups_page'))
+
+
+@app.route('/groups/<group_id>/delete', methods=['POST'])
+def group_delete(group_id):
+    """Delete a group."""
+    group = get_group(group_id)
+    name = group['name'] if group else 'Group'
+    delete_group(group_id)
+    flash(f'{name} group deleted.', 'info')
+    return redirect(url_for('groups_page'))
+
+
+@app.route('/groups/<group_id>/add-student', methods=['POST'])
+def group_add_student(group_id):
+    """Add a student to a group."""
+    student_id = request.form.get('student_id')
+    if student_id:
+        group = add_student_to_group(group_id, student_id)
+        if group:
+            student = get_student(student_id)
+            name = student['name'] if student else 'Student'
+            flash(f'{name} added to {group["name"]} group.', 'success')
+    return redirect(url_for('groups_page'))
+
+
+@app.route('/groups/<group_id>/remove-student', methods=['POST'])
+def group_remove_student(group_id):
+    """Remove a student from a group."""
+    student_id = request.form.get('student_id')
+    if student_id:
+        group = remove_student_from_group(group_id, student_id)
+        if group:
+            student = get_student(student_id)
+            name = student['name'] if student else 'Student'
+            flash(f'{name} removed from {group["name"]} group.', 'info')
+    return redirect(url_for('groups_page'))
 
 
 # --- Plan Generation Routes ---
