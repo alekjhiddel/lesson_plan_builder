@@ -97,6 +97,13 @@
                 <span class="help-text">Leave blank to use the seasonal suggestion</span>
             </div>
         </div>
+        <div class="form-group" style="margin-top: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                <input type="checkbox" id="no_theme" name="no_theme" value="yes" style="width: auto; margin: 0;">
+                <span><strong>No theme</strong> — skip seasonal theming for this plan</span>
+            </label>
+            <span class="help-text">Check this to turn off seasonal themes (no apples, pumpkins, etc.). Plans focus purely on IEP goals and skills. (A custom theme above, if entered, takes priority over this.)</span>
+        </div>
     </div>
     
     <div class="form-section">
@@ -135,4 +142,31 @@
         <button type="submit" class="btn btn-primary btn-large">Generate Prompt ✨</button>
     </div>
 </form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// "No theme" and a custom theme are mutually exclusive. Grey out whichever
+// isn't in use so the choice is clear (backend gives custom_theme priority).
+(function () {
+    const noTheme = document.getElementById('no_theme');
+    const customTheme = document.getElementById('custom_theme');
+    if (!noTheme || !customTheme) return;
+    function sync() {
+        if (noTheme.checked) {
+            customTheme.value = '';
+            customTheme.disabled = true;
+            customTheme.placeholder = 'Disabled — "No theme" is checked';
+        } else {
+            customTheme.disabled = false;
+            customTheme.placeholder = 'e.g., Dinosaurs, Community Helpers, Five Senses';
+        }
+    }
+    noTheme.addEventListener('change', sync);
+    customTheme.addEventListener('input', function () {
+        if (customTheme.value.trim()) { noTheme.checked = false; }
+    });
+    sync();
+})();
+</script>
 {% endblock %}
