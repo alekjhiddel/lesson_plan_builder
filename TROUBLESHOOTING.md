@@ -10,6 +10,7 @@ Having trouble? This guide covers the most common issues. Start with your proble
 - [App Won't Start](#app-wont-start)
 - [Browser Issues](#browser-issues)
 - [Lesson Plan Issues](#lesson-plan-issues)
+- [Goals & Student Form Issues](#goals--student-form-issues)
 - [Knowledge Base / Scraper Issues](#knowledge-base--scraper-issues)
 - [API Mode Issues](#api-mode-issues)
 - [Data & Backup](#data--backup)
@@ -198,6 +199,42 @@ Having trouble? This guide covers the most common issues. Start with your proble
 - In ChatGPT, type: "Please continue from where you left off"
 - Copy BOTH responses and paste them together in the Process Response page
 - Or: Generate "Daily Individual Plans Only" separately from the weekly plan
+
+---
+
+## Goals & Student Form Issues
+
+### My whole list of IEP goals got saved as ONE goal (even though I skipped a line between them)
+
+**What was happening:** When you type goals into the student form and separate them with a blank line, your web browser sends those line breaks in a slightly different format (`\r\n`) than the app was checking for (`\n`). Because the separators didn't match, the app never split the list — so everything you typed got stored as a single giant goal. This also affected the other "separate with a blank line" boxes: Physical needs, Focus areas, and Life-skills priorities.
+
+**Fixed:** As of the Sep 10, 2026 update, the app normalizes line endings before splitting, so a blank line between goals now works no matter what browser or OS you're on (it also tolerates extra blank lines and stray spaces).
+
+**What you need to do:**
+1. Restart SPARK (close the Terminal window running it and double-click `start.command` / `start.bat` again) so the fix loads.
+2. Re-open the affected student, make sure each goal is separated by a blank line (one empty line between each), and **Save** again to re-split any goals that had been merged.
+
+**How to enter goals correctly:**
+```
+Given a visual schedule, will transition between 3 activities with 1 verbal prompt in 4/5 opportunities
+
+Will request preferred items using AAC device in 8/10 trials across 3 sessions
+
+Will complete 3-step handwashing routine independently in 4/5 trials
+```
+(One blank line between each goal. Each goal can be as long as you want.)
+
+---
+
+### The "Copy to Clipboard" button does nothing
+
+**What was happening:** The copy button used a browser feature that only works on secure (`https://`) sites or on `localhost`. Because SPARK runs locally over `http://` (often on a computer's network address, not `localhost`), the browser silently blocked the copy — so clicking the button appeared to do nothing, and you had to select and copy the text by hand.
+
+**Fixed:** As of the Sep 10, 2026 update, the Copy button now falls back to an older copy method that works over `http://`. If for any reason it still can't copy automatically, it will **highlight the prompt text for you** and tell you to press **Ctrl+C** (Windows) or **Cmd+C** (Mac).
+
+**What you need to do:** Just refresh the "Your Prompt is Ready" page (Cmd+Shift+R / Ctrl+Shift+R) so the updated button loads. A full app restart isn't required for this one — it's a page-only change.
+
+**Still not copying?** Use the manual method: click at the start of the prompt text, drag to select all of it, then Ctrl+C / Cmd+C.
 
 ---
 

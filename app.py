@@ -93,6 +93,19 @@ CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 PLANS_DIR = os.path.join(DATA_DIR, 'lesson_plans')
 
 
+def split_blank_line_list(raw):
+    """Split a textarea value into a list of entries separated by blank lines.
+
+    Browsers submit textarea newlines as CRLF (\\r\\n), so a naive
+    split('\\n\\n') never matches the user's blank-line separator and the
+    whole field collapses into one entry. Normalize CRLF/CR to LF first,
+    then split on one-or-more blank lines so 2+ newlines all work.
+    """
+    import re
+    text = (raw or '').replace('\r\n', '\n').replace('\r', '\n')
+    return [chunk.strip() for chunk in re.split(r'\n\s*\n', text) if chunk.strip()]
+
+
 def get_config():
     """Load app configuration."""
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -269,11 +282,11 @@ def student_add():
             'name': request.form.get('name', ''),
             'age': request.form.get('age', ''),
             'grade': request.form.get('grade', ''),
-            'iep_goals': [g.strip() for g in request.form.get('iep_goals', '').split('\n\n') if g.strip()],
+            'iep_goals': split_blank_line_list(request.form.get('iep_goals', '')),
             'iep_annual_review_date': request.form.get('iep_annual_review_date', ''),
             'related_services': request.form.get('related_services', ''),
             'sdi_notes': request.form.get('sdi_notes', ''),
-            'physical_needs': [n.strip() for n in request.form.get('physical_needs', '').split('\n\n') if n.strip()],
+            'physical_needs': split_blank_line_list(request.form.get('physical_needs', '')),
             'cognitive_needs': request.form.get('cognitive_needs', ''),
             'behavioral_needs': request.form.get('behavioral_needs', ''),
             'sensory_needs': request.form.get('sensory_needs', ''),
@@ -283,9 +296,9 @@ def student_add():
             'homeroom_duration': request.form.get('homeroom_duration', ''),
             'homeroom_aide_accompanies': request.form.get('homeroom_aide_accompanies') == 'yes',
             'homeroom_schedule': request.form.get('homeroom_schedule', ''),
-            'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n\n') if a.strip()],
+            'focus_areas': split_blank_line_list(request.form.get('focus_areas', '')),
             'reinforcers': request.form.get('reinforcers', ''),
-            'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n\n') if l.strip()],
+            'life_skills_priorities': split_blank_line_list(request.form.get('life_skills_priorities', '')),
             'notes': request.form.get('notes', ''),
             'ability_level': {
                 'functional_level': request.form.get('functional_level', ''),
@@ -313,11 +326,11 @@ def student_edit(student_id):
             'name': request.form.get('name', ''),
             'age': request.form.get('age', ''),
             'grade': request.form.get('grade', ''),
-            'iep_goals': [g.strip() for g in request.form.get('iep_goals', '').split('\n\n') if g.strip()],
+            'iep_goals': split_blank_line_list(request.form.get('iep_goals', '')),
             'iep_annual_review_date': request.form.get('iep_annual_review_date', ''),
             'related_services': request.form.get('related_services', ''),
             'sdi_notes': request.form.get('sdi_notes', ''),
-            'physical_needs': [n.strip() for n in request.form.get('physical_needs', '').split('\n\n') if n.strip()],
+            'physical_needs': split_blank_line_list(request.form.get('physical_needs', '')),
             'cognitive_needs': request.form.get('cognitive_needs', ''),
             'behavioral_needs': request.form.get('behavioral_needs', ''),
             'sensory_needs': request.form.get('sensory_needs', ''),
@@ -327,9 +340,9 @@ def student_edit(student_id):
             'homeroom_duration': request.form.get('homeroom_duration', ''),
             'homeroom_aide_accompanies': request.form.get('homeroom_aide_accompanies') == 'yes',
             'homeroom_schedule': request.form.get('homeroom_schedule', ''),
-            'focus_areas': [a.strip() for a in request.form.get('focus_areas', '').split('\n\n') if a.strip()],
+            'focus_areas': split_blank_line_list(request.form.get('focus_areas', '')),
             'reinforcers': request.form.get('reinforcers', ''),
-            'life_skills_priorities': [l.strip() for l in request.form.get('life_skills_priorities', '').split('\n\n') if l.strip()],
+            'life_skills_priorities': split_blank_line_list(request.form.get('life_skills_priorities', '')),
             'notes': request.form.get('notes', ''),
             'ability_level': {
                 'functional_level': request.form.get('functional_level', ''),
@@ -455,6 +468,7 @@ def generate():
         plan_type = request.form.get('plan_type', 'weekly')
         selected_month = int(request.form.get('month', 0))
         custom_theme = request.form.get('custom_theme', '')
+        no_theme = request.form.get('no_theme') == 'yes'
         additional_notes = request.form.get('additional_notes', '')
         
         para_notes_style = request.form.get('para_notes_style', 'detailed')
@@ -466,6 +480,7 @@ def generate():
             plan_type=plan_type,
             month_override=selected_month if selected_month else None,
             custom_theme=custom_theme,
+            no_theme=no_theme,
             additional_notes=additional_notes,
             para_notes_style=para_notes_style
         )
