@@ -109,7 +109,8 @@ def get_esy_candidates(students, progress_data_func):
     
     for student in students:
         student_regressions = []
-        goals = student.get('iep_goals', [])
+        from .student_manager import normalize_goals
+        goals = normalize_goals(student.get('iep_goals', []))
         
         for goal in goals:
             goal_id = goal.get('id', goal.get('goal_id', ''))

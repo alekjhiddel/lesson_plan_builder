@@ -26,7 +26,7 @@ class PromptBuilder:
     
     def build_prompt(self, students, config, plan_type='weekly', 
                      month_override=None, custom_theme='', additional_notes='',
-                     week_of=None, para_notes_style='detailed'):
+                     week_of=None, para_notes_style='detailed', no_theme=False):
         """
         Build a complete prompt for ChatGPT.
         Returns anonymized prompt text ready to copy/send.
@@ -56,7 +56,7 @@ class PromptBuilder:
                 sections.append(groups_section)
         
         # 5. Scheduling context and themes
-        sections.append(self._build_schedule_section(month_override, custom_theme))
+        sections.append(self._build_schedule_section(month_override, custom_theme, no_theme))
         
         # 6. Previous plans context (for continuity)
         prev_context = self._build_previous_plans_section(month_override)
@@ -292,9 +292,23 @@ child unable to participate. Use tiered task analysis — same activity, differe
         
         return section
     
-    def _build_schedule_section(self, month_override=None, custom_theme=''):
+    def _build_schedule_section(self, month_override=None, custom_theme='', no_theme=False):
         context = get_scheduling_context()
-        
+
+        # "No theme" — teacher opted out of seasonal theming for this plan.
+        # Strip the suggested-theme / theme-color lines from the context so the
+        # AI doesn't run with them (e.g. "everything is apples"), and give an
+        # explicit instruction to keep materials theme-neutral. A custom theme,
+        # if also provided, still wins (explicit request overrides opt-out).
+        if no_theme and not custom_theme:
+            kept = [ln for ln in context.split('\n')
+                    if not ln.strip().startswith(('- Suggested Themes:', '- Theme Colors:', '- Activity Ideas:'))]
+            context = '\n'.join(kept)
+            context += ("\nNO SEASONAL THEME: The teacher has turned OFF seasonal/monthly theming for this plan. "
+                        "Do NOT apply a seasonal or holiday theme (no apples, pumpkins, snowmen, etc.). "
+                        "Keep materials and visuals neutral and functional. Focus purely on the IEP goals and skills.\n")
+            return context
+
         if month_override:
             themes = get_themes_for_month(month_override)
             context += f"\nOVERRIDE - Planning for: {themes['month']}\n"

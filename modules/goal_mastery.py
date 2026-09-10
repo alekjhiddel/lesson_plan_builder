@@ -175,7 +175,8 @@ def check_all_mastery(students, get_goal_data_func):
     
     for student in students:
         student_id = student.get('id', '')
-        goals = student.get('iep_goals', [])
+        from .student_manager import normalize_goals
+        goals = normalize_goals(student.get('iep_goals', []))
         
         for goal in goals:
             goal_id = goal.get('id', goal.get('goal_id', ''))

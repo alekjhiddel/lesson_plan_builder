@@ -565,6 +565,8 @@ def _prepare_activity(activity: dict, area: str) -> dict:
 def _extract_goal_areas(iep_goals: list) -> set:
     """Extract goal area keywords from IEP goals."""
     areas = set()
+    from .student_manager import normalize_goals
+    iep_goals = normalize_goals(iep_goals)
     for goal in iep_goals:
         area = goal.get('area', '').lower()
         # Map common IEP goal areas to activity bank categories

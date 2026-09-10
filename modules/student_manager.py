@@ -17,6 +17,44 @@ STUDENTS_DIR = os.path.join(DATA_DIR, 'students')
 CURRENT_YEAR_FILE = os.path.join(DATA_DIR, 'current_year.json')
 
 
+def normalize_goal(goal):
+    """Return an IEP goal as a consistent dict, whatever shape it came in as.
+
+    Goals entered on the student form are stored as plain STRINGS (a list of
+    goal texts). Other parts of the app (goal bank, mastery, ESY) may store
+    goals as DICTS. Modules that iterate goals call goal.get(...), which blows
+    up with 'str object has no attribute get' when the goal is a string.
+    Run every goal through this first so callers always get a dict with:
+      id, goal_id, text, template, area, domain
+    For string goals a STABLE id is synthesized from the text (so data keyed
+    to a goal stays consistent across runs).
+    """
+    if isinstance(goal, dict):
+        text = goal.get('text') or goal.get('template') or goal.get('goal_text') or ''
+        gid = goal.get('id') or goal.get('goal_id') or ''
+        if not gid and text:
+            import hashlib
+            gid = 'g_' + hashlib.md5(text.encode('utf-8')).hexdigest()[:12]
+        out = dict(goal)
+        out.setdefault('text', text)
+        out.setdefault('template', text)
+        out['id'] = gid
+        out['goal_id'] = gid
+        out.setdefault('area', goal.get('area', goal.get('domain', '')))
+        return out
+    # Plain string goal
+    text = str(goal).strip()
+    import hashlib
+    gid = 'g_' + hashlib.md5(text.encode('utf-8')).hexdigest()[:12] if text else ''
+    return {'id': gid, 'goal_id': gid, 'text': text, 'template': text,
+            'area': '', 'domain': ''}
+
+
+def normalize_goals(goals):
+    """Normalize a list of goals (strings and/or dicts) into dicts."""
+    return [normalize_goal(g) for g in (goals or [])]
+
+
 def ensure_data_dir():
     """Create data directory if it doesn't exist."""
     os.makedirs(DATA_DIR, exist_ok=True)
