@@ -1,6 +1,6 @@
 {
-  "version": "2.4.0",
-  "release_date": "2026-08-22",
+  "version": "2.5.1",
+  "release_date": "2026-09-10",
   "min_python": "3.8",
-  "changelog": "Added year-over-year student lifecycle tracking (Phase 1: data model + migration + stage config)"
+  "changelog": "Bug fixes: IEP goals no longer collapse into one goal (CRLF blank-line parsing); Copy-to-Clipboard button works over http:// (clipboard fallback); fixed 500 errors on ESY, Goal Mastery, and NTI (goals stored as strings now normalized); fixed Schedule page 500 (endpoint name). New: 'No theme' option on the Generate page to skip seasonal theming."
 }
