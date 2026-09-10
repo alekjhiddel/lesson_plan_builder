@@ -46,6 +46,101 @@
 <script>
 function copyPrompt() {
     const text = document.getElementById('prompt-text').innerText;
+    const btn = document.getElementById('copy-btn');
+    const feedback = document.getElementById('copy-feedback');
+
+    function showCopied() {
+        btn.innerHTML = '✅ Copied!';
+        btn.classList.add('btn-success');
+        feedback.textContent = 'Now paste this into ChatGPT!';
+        setTimeout(() => {
+            btn.innerHTML = '📋 Copy to Clipboard';
+            btn.classList.remove('btn-success');
+        }, 3000);
+    }
+
+    function fallbackCopy() {
+        // Works over http:// (LAN) where navigator.clipboard is unavailable.
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        if (ok) {
+            showCopied();
+        } else {
+            const range = document.createRange();
+            range.selectNodeContents(document.getElementById('prompt-text'));
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            feedback.textContent = 'Press Ctrl+C (or Cmd+C) to copy the highlighted text.';
+        }
+    }
+
+    // navigator.clipboard only exists in a secure context (https or localhost).
+    // SPARK runs locally over http:// on a LAN IP, so guard for it.
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(showCopied).catch(fallbackCopy);
+    } else {
+        fallbackCopy();
+    }
+}
+</script>
+{% endblock %}
+{% extends "base.html" %}
+{% block title %}Your Prompt - SPARK{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>📋 Your Prompt is Ready!</h1>
+    <p class="subtitle">Copy this and paste it into ChatGPT</p>
+</div>
+
+<div class="prompt-instructions">
+    <div class="step-list">
+        <div class="step">
+            <span class="step-number">1</span>
+            <p>Click the <strong>Copy</strong> button below</p>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <p>Open <a href="https://chat.openai.com" target="_blank">ChatGPT</a> and paste it in</p>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            <p>When ChatGPT responds, come back here and click <strong>Process Response</strong></p>
+        </div>
+    </div>
+</div>
+
+<div class="prompt-container">
+    <div class="prompt-actions">
+        <button onclick="copyPrompt()" class="btn btn-primary" id="copy-btn">
+            📋 Copy to Clipboard
+        </button>
+        <span class="copy-feedback" id="copy-feedback"></span>
+    </div>
+    <pre class="prompt-text" id="prompt-text">{{ prompt }}</pre>
+</div>
+
+<div class="next-step">
+    <p>After ChatGPT gives you a response:</p>
+    <a href="{{ url_for('process_response') }}?plan_type={{ plan_type }}" class="btn btn-secondary btn-large">
+        📋 Process ChatGPT's Response →
+    </a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyPrompt() {
+    const text = document.getElementById('prompt-text').innerText;
     navigator.clipboard.writeText(text).then(() => {
         const btn = document.getElementById('copy-btn');
         const feedback = document.getElementById('copy-feedback');
