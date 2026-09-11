@@ -1,6 +1,6 @@
 {
-  "version": "2.5.1",
+  "version": "2.6.0",
   "release_date": "2026-09-10",
   "min_python": "3.8",
-  "changelog": "Bug fixes: IEP goals no longer collapse into one goal (CRLF blank-line parsing); Copy-to-Clipboard button works over http:// (clipboard fallback); fixed 500 errors on ESY, Goal Mastery, and NTI (goals stored as strings now normalized); fixed Schedule page 500 (endpoint name). New: 'No theme' option on the Generate page to skip seasonal theming."
+  "changelog": "New: 'Build plan by goal' — optionally target specific IEP goals per student when generating a plan (pick one, several, or all goals per kid; unchecked students are planned normally; feature is fully optional). Also fixed prompt_display.html duplicate-content error. Added DEV_NOTES.md (maintainer/deploy notes)."
 }

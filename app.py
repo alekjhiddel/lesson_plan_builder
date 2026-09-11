@@ -470,6 +470,20 @@ def generate():
         custom_theme = request.form.get('custom_theme', '')
         no_theme = request.form.get('no_theme') == 'yes'
         additional_notes = request.form.get('additional_notes', '')
+
+        # "Build plan by goal": collect per-student targeted goal indices.
+        # Only active when the master checkbox is on. Checkboxes are named
+        # goal_<student_id>_<index>. Students with no boxes checked are simply
+        # absent from the dict → treated normally (no targeting). Feature off
+        # or nothing checked → empty dict → plain plan.
+        goal_targets = {}
+        if request.form.get('by_goal') == 'yes':
+            for key in request.form:
+                if key.startswith('goal_') and request.form.get(key) == 'on':
+                    body = key[len('goal_'):]
+                    sid, _, idx = body.rpartition('_')
+                    if sid and idx.isdigit():
+                        goal_targets.setdefault(sid, []).append(int(idx))
         
         para_notes_style = request.form.get('para_notes_style', 'detailed')
         
@@ -481,6 +495,7 @@ def generate():
             month_override=selected_month if selected_month else None,
             custom_theme=custom_theme,
             no_theme=no_theme,
+            goal_targets=goal_targets,
             additional_notes=additional_notes,
             para_notes_style=para_notes_style
         )
