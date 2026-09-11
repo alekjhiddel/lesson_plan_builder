@@ -55,6 +55,47 @@ def normalize_goals(goals):
     return [normalize_goal(g) for g in (goals or [])]
 
 
+def _resplit_blob_goals(goals):
+    """Repair legacy goal data on READ.
+
+    Older student records stored iep_goals as a single blob string (or a
+    one-element list holding a blank-line-separated blob) because the save
+    path didn't split on blank lines yet. That makes the UI show ONE goal /
+    one checkbox with a wall of text. This re-splits any blob on blank lines
+    so goals become a proper list of individual goals — without requiring the
+    teacher to re-enter or re-save anything.
+
+    Splits ONLY on blank lines (one empty line between goals), matching the
+    documented entry convention. A goal that itself spans multiple single
+    newlines stays intact.
+    """
+    import re
+    def split_blob(s):
+        text = str(s).replace('\r\n', '\n').replace('\r', '\n')
+        return [c.strip() for c in re.split(r'\n\s*\n', text) if c.strip()]
+    if not goals:
+        return goals
+    # Case 1: stored as a bare string
+    if isinstance(goals, str):
+        return split_blob(goals)
+    # Case 2: stored as a list — re-split any string element that contains a
+    # blank line (dict goals are left untouched).
+    out = []
+    for g in goals:
+        if isinstance(g, str) and re.search(r'\n\s*\n', g.replace('\r\n', '\n').replace('\r', '\n')):
+            out.extend(split_blob(g))
+        else:
+            out.append(g)
+    return out
+
+
+def _repair_student_goals(student):
+    """Apply goal re-split repair to a single student dict (in place, returned)."""
+    if isinstance(student, dict) and 'iep_goals' in student:
+        student['iep_goals'] = _resplit_blob_goals(student.get('iep_goals'))
+    return student
+
+
 def ensure_data_dir():
     """Create data directory if it doesn't exist."""
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -85,17 +126,18 @@ def get_all_students():
     ensure_data_dir()
     
     if _is_year_aware():
-        return _get_all_students_new()
+        students = _get_all_students_new()
     else:
-        return _get_all_students_legacy()
+        students = _get_all_students_legacy()
+    return [_repair_student_goals(s) for s in students]
 
 
 def get_student(student_id):
     """Get a single student by ID. Works in both formats."""
     if _is_year_aware():
-        return _get_student_new(student_id)
+        return _repair_student_goals(_get_student_new(student_id))
     else:
-        return _get_student_legacy(student_id)
+        return _repair_student_goals(_get_student_legacy(student_id))
 
 
 def add_student(student_data):
