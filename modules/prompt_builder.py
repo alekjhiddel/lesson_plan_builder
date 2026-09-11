@@ -26,10 +26,17 @@ class PromptBuilder:
     
     def build_prompt(self, students, config, plan_type='weekly', 
                      month_override=None, custom_theme='', additional_notes='',
-                     week_of=None, para_notes_style='detailed', no_theme=False):
+                     week_of=None, para_notes_style='detailed', no_theme=False,
+                     goal_targets=None):
         """
         Build a complete prompt for ChatGPT.
         Returns anonymized prompt text ready to copy/send.
+
+        goal_targets: optional dict {student_id: [goal_index, ...]} for the
+        "Build plan by goal" feature. When a student has entries, only those
+        goals are shown for them and the plan is instructed to target them.
+        Students not in the dict are treated normally (all goals, no targeting).
+        None/empty = feature off entirely (normal plan).
         """
         # Create anonymization mapping
         self.anonymizer.create_mapping(students)
@@ -47,7 +54,7 @@ class PromptBuilder:
         sections.append(self._build_classroom_section(config))
         
         # 4. Student profiles (anonymized)
-        sections.append(self._build_students_section(students))
+        sections.append(self._build_students_section(students, goal_targets))
         
         # 4b. Group context (if groups exist and plan type uses them)
         if plan_type in ('small_group', 'mixed'):
@@ -157,8 +164,10 @@ DAILY STRUCTURE PRIORITIES:
         
         return section
     
-    def _build_students_section(self, students):
+    def _build_students_section(self, students, goal_targets=None):
         section = "STUDENT PROFILES (anonymized for privacy):\n"
+        goal_targets = goal_targets or {}
+        any_targeting = False
         
         for student in students:
             anon = self.anonymizer.anonymize_student_data(student)
@@ -186,10 +195,24 @@ DAILY STRUCTURE PRIORITIES:
             if anon.get('reinforcers'):
                 section += f"Motivators/Reinforcers: {anon['reinforcers']}\n"
             
-            if anon['iep_goals']:
-                section += "IEP Goals:\n"
-                for goal in anon['iep_goals']:
-                    section += f"  • {goal}\n"
+            # "Build plan by goal": if this student has selected goal indices,
+            # show ONLY those goals and flag them as the targeted focus.
+            sid = student.get('id', '')
+            targeted_idx = goal_targets.get(sid)
+            goals_list = anon['iep_goals'] or []
+            if goals_list:
+                if targeted_idx:
+                    any_targeting = True
+                    chosen = [g for i, g in enumerate(goals_list) if i in set(targeted_idx)]
+                    if not chosen:  # indices didn't line up — fall back to all
+                        chosen = list(goals_list)
+                    section += "IEP Goals — 🎯 TARGET THESE GOALS for this student's plan:\n"
+                    for goal in chosen:
+                        section += f"  • {goal}\n"
+                else:
+                    section += "IEP Goals:\n"
+                    for goal in goals_list:
+                        section += f"  • {goal}\n"
             
             if anon.get('related_services'):
                 section += f"Related Services: {anon['related_services']}\n"
@@ -210,6 +233,13 @@ DAILY STRUCTURE PRIORITIES:
             else:
                 section += "Homeroom: Does not attend general education homeroom\n"
         
+        if any_targeting:
+            section += ("\n🎯 TARGETED-GOALS MODE: For any student whose goals are marked "
+                        "\"TARGET THESE GOALS\", build that student's activities to directly work "
+                        "those specific goals — every activity should map to one of them. Students "
+                        "shown with a normal \"IEP Goals\" list have no targeting; plan for them as "
+                        "usual across their goals.\n")
+
         return section
     
     def _build_groups_section(self, students):
