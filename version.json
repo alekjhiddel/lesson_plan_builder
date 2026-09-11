@@ -1,6 +1,6 @@
 {
-  "version": "2.6.0",
+  "version": "2.6.1",
   "release_date": "2026-09-10",
   "min_python": "3.8",
-  "changelog": "New: 'Build plan by goal' — optionally target specific IEP goals per student when generating a plan (pick one, several, or all goals per kid; unchecked students are planned normally; feature is fully optional). Also fixed prompt_display.html duplicate-content error. Added DEV_NOTES.md (maintainer/deploy notes)."
+  "changelog": "Fix: legacy IEP goals stored as one blank-line blob are now re-split into individual goals automatically on read (fixes 'Build plan by goal' showing one checkbox with all goals as a wall of text, and goals collapsing into one). No re-entry needed. Builds on the 2.6.0 'Build plan by goal' feature."
 }
