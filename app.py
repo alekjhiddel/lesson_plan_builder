@@ -82,7 +82,10 @@ from modules.group_manager import (
     get_all_groups, get_groups_by_type, get_group, create_group,
     update_group, delete_group, add_student_to_group, remove_student_from_group,
     move_student_between_groups, get_ungrouped_students, auto_group_by_ability,
-    accept_auto_groups, get_group_summary
+    accept_auto_groups, get_group_summary, size_groups_by_skill
+)
+from modules.center_manager import (
+    get_rotation_minutes, set_rotation_minutes
 )
 
 app = Flask(__name__)
@@ -91,6 +94,23 @@ app.secret_key = os.urandom(24)
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 PLANS_DIR = os.path.join(DATA_DIR, 'lesson_plans')
+
+
+def _rotation_split_options(count):
+    """Divisor-based even-split suggestions for `count` remaining students.
+    Prime counts return [] -> template must always offer the free
+    'number of groups' input as well."""
+    opts = []
+    for ng in range(2, count):
+        if count % ng == 0:
+            opts.append({'num_groups': ng, 'size': count // ng,
+                         'label': f'{ng} groups of {count // ng}'})
+    return opts
+
+
+def _parse_group_sizes(raw):
+    """Parse '3,2,2' -> [3, 2, 2]; tolerant of spaces and blanks."""
+    return [int(x.strip()) for x in (raw or '').split(',') if x.strip()]
 
 
 def split_blank_line_list(raw):
@@ -486,7 +506,84 @@ def generate():
                         goal_targets.setdefault(sid, []).append(int(idx))
         
         para_notes_style = request.form.get('para_notes_style', 'detailed')
-        
+
+        # ---- CENTER ROTATION: two-phase interactive group sizing ------------
+        # Additive branch. Only engages when plan_type == 'center_rotation';
+        # every other plan type falls straight through unchanged.
+        rotation_groups = None  # stays None for all non-rotation plan types
+        if plan_type == 'center_rotation':
+            goal_groups = get_groups_by_type('goal')
+            remaining_kids = get_ungrouped_students(students, group_type='goal')
+
+            if not remaining_kids:
+                rotation_groups = list(goal_groups)
+            else:
+                sizing_choice = request.form.get('rotation_sizing')
+                if not sizing_choice:
+                    return render_template(
+                        'generate.html',
+                        students=students,
+                        themes=themes,
+                        config=config,
+                        rotation_sizing_needed=True,
+                        rotation_remaining=remaining_kids,
+                        rotation_remaining_count=len(remaining_kids),
+                        rotation_split_options=_rotation_split_options(len(remaining_kids)),
+                        rotation_goal_group_count=len(goal_groups),
+                        rotation_form={
+                            'plan_type': plan_type,
+                            'month': selected_month,
+                            'custom_theme': custom_theme,
+                            'no_theme': 'yes' if no_theme else '',
+                            'additional_notes': additional_notes,
+                            'para_notes_style': para_notes_style,
+                            'by_goal': 'yes' if goal_targets else '',
+                        },
+                        rotation_goal_targets=goal_targets,
+                    )
+                sizes_raw = request.form.get('rotation_group_sizes', '').strip()
+                num_raw = request.form.get('rotation_num_groups', '').strip()
+                try:
+                    if sizes_raw:
+                        group_sizes = _parse_group_sizes(sizes_raw)
+                        if not group_sizes:
+                            raise ValueError('Enter group sizes like 3,2,2.')
+                        skill_groups = size_groups_by_skill(
+                            remaining_kids, group_sizes=group_sizes,
+                            leftover_policy='attach_nearest')
+                    else:
+                        if not num_raw.isdigit() or int(num_raw) < 1:
+                            raise ValueError('Choose how many groups to make.')
+                        skill_groups = size_groups_by_skill(
+                            remaining_kids, num_groups=int(num_raw),
+                            leftover_policy='attach_nearest')
+                except ValueError as e:
+                    flash(f'Group sizing problem: {e}', 'error')
+                    return render_template(
+                        'generate.html',
+                        students=students,
+                        themes=themes,
+                        config=config,
+                        rotation_sizing_needed=True,
+                        rotation_remaining=remaining_kids,
+                        rotation_remaining_count=len(remaining_kids),
+                        rotation_split_options=_rotation_split_options(len(remaining_kids)),
+                        rotation_goal_group_count=len(goal_groups),
+                        rotation_sizing_error=str(e),
+                        rotation_form={
+                            'plan_type': plan_type,
+                            'month': selected_month,
+                            'custom_theme': custom_theme,
+                            'no_theme': 'yes' if no_theme else '',
+                            'additional_notes': additional_notes,
+                            'para_notes_style': para_notes_style,
+                            'by_goal': 'yes' if goal_targets else '',
+                        },
+                        rotation_goal_targets=goal_targets,
+                    )
+                rotation_groups = list(goal_groups) + list(skill_groups)
+        # ---- END CENTER ROTATION --------------------------------------------
+
         builder = PromptBuilder()
         prompt = builder.build_prompt(
             students=students,
@@ -497,7 +594,8 @@ def generate():
             no_theme=no_theme,
             goal_targets=goal_targets,
             additional_notes=additional_notes,
-            para_notes_style=para_notes_style
+            para_notes_style=para_notes_style,
+            rotation_groups=rotation_groups
         )
         
         if config.get('api_enabled') and is_api_configured(config):
@@ -1596,6 +1694,32 @@ def compliance_delete_event(event_id):
     return redirect(url_for('compliance_calendar'))
 
 
+
+
+
+@app.route('/api/centers/rotation_minutes', methods=['GET', 'POST'])
+def api_rotation_minutes():
+    """Get or set the customizable center-rotation length (minutes).
+
+    GET  -> {'rotation_minutes': <int>}
+    POST -> reads 'rotation_minutes' from JSON body or form; sets it via
+    center_manager.set_rotation_minutes (which raises ValueError on junk).
+    Always catches ValueError and returns HTTP 400 -- never a 500.
+    """
+    if request.method == 'GET':
+        return jsonify({'rotation_minutes': get_rotation_minutes()})
+    # POST
+    value = None
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        value = data.get('rotation_minutes')
+    if value is None:
+        value = request.form.get('rotation_minutes')
+    try:
+        stored = set_rotation_minutes(value)
+        return jsonify({'ok': True, 'rotation_minutes': stored})
+    except ValueError as e:
+        return jsonify({'ok': False, 'error': str(e)}), 400
 
 
 if __name__ == '__main__':
