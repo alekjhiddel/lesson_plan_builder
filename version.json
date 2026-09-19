@@ -1,5 +1,5 @@
 {
-  "version": "2.7.0",
+  "version": "2.7.1",
   "release_date": "2026-09-18",
   "min_python": "3.8",
   "changelog": "NEW: Center Rotation Plan. Generates a full Center x Group matrix - every group rotates through all 4 fixed centers (Reading, Math, Motor/fine-motor, Social/Emotional/Adaptive/Life Skills) with one tailored, IEP-goal-targeted, para-readable activity per group per center. Grouping is goal-first: kids in an IEP-goal group stay grouped by goal; the rest are interactively sized by the teacher and balanced by skill level. Customizable rotation length (default 10 min, 5-30). Schedule engine now shows real center names instead of 'Center 1/2/3'. Privacy hardening: the anonymizer now redacts bare last names and uses word-boundary matching (fixes surnames leaking into prompts); per-student goal attribution fixed for students who share a first name. Built and verified through the full multi-agent QA pipeline."
