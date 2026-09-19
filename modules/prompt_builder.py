@@ -5,6 +5,7 @@ Focused on life skills, independence, and IEP compliance for MSD classrooms.
 Incorporates Kentucky-specific IEP requirements (707 KAR 1:320).
 """
 
+import re
 import os
 import json
 from datetime import datetime
@@ -231,19 +232,43 @@ DAILY STRUCTURE PRIORITIES:
             # show ONLY those goals and flag them as the targeted focus.
             sid = student.get('id', '')
             targeted_idx = goal_targets.get(sid)
-            goals_list = anon['iep_goals'] or []
-            if goals_list:
+            # PRIVACY + FORMAT FIX: goals may be stored as dicts ({'text': ...})
+            # or strings. Emitting the raw item leaked the real name inside the
+            # goal text (dict repr) straight into the prompt. Mirror the matrix
+            # builder: normalize_goals() to clean text, then scrub THIS student's
+            # own name to their label first, then a global scrub so any peer
+            # names mentioned are anonymized too.
+            _label = anon['name']
+            def _scrub_own(text, _student=student):
+                _lab = anon['name']
+                result = text
+                local = {_student.get('name', ''): _lab}
+                for tok in (_student.get('name', '') or '').split():
+                    core = tok[:-1] if tok.endswith('.') else tok
+                    if len(core) >= 2 and re.fullmatch(r"[A-Za-z]+([-\'][A-Za-z]+)*", core):
+                        local.setdefault(core, _lab)
+                for nm in sorted((k for k in local if k), key=len, reverse=True):
+                    result = re.sub(r"\b" + re.escape(nm) + r"\b", local[nm],
+                                    result, flags=re.IGNORECASE)
+                return self.anonymizer.anonymize_text(result, students)
+            _norm = normalize_goals(student.get('iep_goals'))
+            goals_texts = []
+            for _g in _norm:
+                _t = _g.get('text', '')
+                if _t:
+                    goals_texts.append(_scrub_own(_t))
+            if goals_texts:
                 if targeted_idx:
                     any_targeting = True
-                    chosen = [g for i, g in enumerate(goals_list) if i in set(targeted_idx)]
+                    chosen = [g for i, g in enumerate(goals_texts) if i in set(targeted_idx)]
                     if not chosen:  # indices didn't line up — fall back to all
-                        chosen = list(goals_list)
+                        chosen = list(goals_texts)
                     section += "IEP Goals — 🎯 TARGET THESE GOALS for this student's plan:\n"
                     for goal in chosen:
                         section += f"  • {goal}\n"
                 else:
                     section += "IEP Goals:\n"
-                    for goal in goals_list:
+                    for goal in goals_texts:
                         section += f"  • {goal}\n"
             
             if anon.get('related_services'):
@@ -367,14 +392,16 @@ DAILY STRUCTURE PRIORITIES:
             )
 
         section += "GROUPS (rotate through every center):\n"
-        _seen_member_ids = set()  # m2: a student appears in at most one rotation group
+        # NOTE: no cross-group de-dup here. In goal-based grouping a student
+        # legitimately belongs to MULTIPLE groups (e.g. Math-Identifying AND
+        # Math-Recognizing), so every group must render its FULL membership.
+        # De-dup for the get_all_groups() fallback lives in build_prompt (where a
+        # kid could otherwise appear in both an ability and a goal group); this
+        # builder renders whatever groups it is handed, overlap preserved.
         for group in groups:
             name = self.anonymizer.anonymize_text(group.get('name', 'Group') or 'Group', all_students)
             member_students = []
             for sid in group.get('student_ids', []):
-                if sid in _seen_member_ids:
-                    continue  # already placed in an earlier group
-                _seen_member_ids.add(sid)
                 st = student_by_id.get(sid)
                 if st is None:
                     member_students.append({'id': sid, 'name': '__missing__', 'iep_goals': []})
