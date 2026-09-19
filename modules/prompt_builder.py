@@ -11,7 +11,8 @@ from datetime import datetime
 from .group_manager import get_all_groups, get_instruction_level, calculate_ability_score
 from .anonymizer import Anonymizer
 from .scheduler import get_scheduling_context, get_current_themes, get_themes_for_month
-from .student_manager import get_all_students
+from .student_manager import normalize_goals
+from .center_manager import get_centers, get_rotation_minutes
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 KB_DIR = os.path.join(DATA_DIR, 'knowledge_base')
@@ -27,7 +28,7 @@ class PromptBuilder:
     def build_prompt(self, students, config, plan_type='weekly', 
                      month_override=None, custom_theme='', additional_notes='',
                      week_of=None, para_notes_style='detailed', no_theme=False,
-                     goal_targets=None):
+                     goal_targets=None, rotation_groups=None):
         """
         Build a complete prompt for ChatGPT.
         Returns anonymized prompt text ready to copy/send.
@@ -51,13 +52,33 @@ class PromptBuilder:
         sections.append(self._build_ky_iep_section())
         
         # 3. Classroom setup
-        sections.append(self._build_classroom_section(config))
+        sections.append(self._build_classroom_section(config, plan_type))
         
         # 4. Student profiles (anonymized)
         sections.append(self._build_students_section(students, goal_targets))
         
         # 4b. Group context (if groups exist and plan type uses them)
-        if plan_type in ('small_group', 'mixed'):
+        if plan_type == 'center_rotation':
+            # Consume already-resolved groups from the app layer (chunk 5).
+            if rotation_groups is not None:
+                groups = rotation_groups
+            else:
+                # get_all_groups() returns ability AND goal groups; a kid can be
+                # in both. DE-DUP so a student appears in at most one rotation
+                # group (keep first occurrence).
+                groups = []
+                _seen_ids = set()
+                for _g in get_all_groups():
+                    _ng = dict(_g)
+                    _ng['student_ids'] = [sid for sid in _g.get('student_ids', [])
+                                          if not (sid in _seen_ids or _seen_ids.add(sid))]
+                    groups.append(_ng)
+            self._rotation_group_count = len(groups)
+            matrix_section = self._build_center_matrix_section(
+                groups, get_centers(), get_rotation_minutes(), students)
+            if matrix_section:
+                sections.append(matrix_section)
+        elif plan_type in ('small_group', 'mixed'):
             groups_section = self._build_groups_section(students)
             if groups_section:
                 sections.append(groups_section)
@@ -76,7 +97,9 @@ class PromptBuilder:
             sections.append(kb_context)
         
         # 8. Specific request
-        sections.append(self._build_request_section(plan_type, additional_notes))
+        sections.append(self._build_request_section(
+            plan_type, additional_notes,
+            num_groups=getattr(self, '_rotation_group_count', None)))
         
         return '\n\n'.join(sections)
     
@@ -137,7 +160,7 @@ ACTIVITIES SHOULD ALWAYS EMBED:
 - Prompting level expected (full physical, partial physical, model, gestural, verbal, independent)
 - What "mastery" looks like for each student at each activity"""
     
-    def _build_classroom_section(self, config):
+    def _build_classroom_section(self, config, plan_type='weekly'):
         section = f"""CLASSROOM SETUP:
 - Self-contained MSD classroom (elementary level) in Kentucky
 - Number of students: {config.get('class_size', 9)}
@@ -148,8 +171,17 @@ ACTIVITIES SHOULD ALWAYS EMBED:
 - 1 floater aide (available for transitions, 1:1 support, homeroom escorts)
 - CONSTRAINT: At least 1 aide must remain in the classroom AT ALL TIMES (safety)"""
         
+        # MAJOR-1: one source of truth for rotation facts. For center_rotation the
+        # group count & rotation length come from the matrix / get_rotation_minutes(),
+        # so do NOT hard-code "3 groups rotating every 15-20 minutes" here.
+        if plan_type == 'center_rotation':
+            section += """
+- Center rotation model: groups rotate through the fixed centers (group count and rotation length are specified in the Center-Rotation Matrix below)"""
+        else:
+            section += """
+- Center rotation model: 3 groups rotating every 15-20 minutes"""
+
         section += """
-- Center rotation model: 3 groups rotating every 15-20 minutes
 - Students rotate to general education homeroom on individual schedules (details below)
 - When an aide escorts a student to homeroom, remaining staff must cover the room
 - Related service providers (SLP, OT, PT) may push in during centers
@@ -242,6 +274,182 @@ DAILY STRUCTURE PRIORITIES:
 
         return section
     
+
+    def _build_center_matrix_section(self, groups, centers, rotation_minutes, students):
+        """Build the Center x Group rotation matrix section.
+
+        Emits, per group, anonymized members AND each member's anonymized IEP
+        goal texts, then the 4 fixed centers, and instructs the model to produce
+        ONE tailored activity per group per center (N x 4 total).
+        """
+        all_students = students or []
+
+        # FATAL-1: only bail if there are NO centers AND NO students.
+        if not centers and not all_students:
+            return ""
+
+        student_by_id = {}
+        anon_name_by_id = {}
+        for student in all_students:
+            sid = student.get('id')
+            student_by_id[sid] = student
+            anon_name_by_id[sid] = self.anonymizer.anonymize_student_data(student)['name']
+
+        import re as _re
+
+        def _scrub_goal_text(student, label, text):
+            """Scrub a member's own goal text.
+
+            M1 fix: the global anonymizer maps a shared first name to whichever
+            student was seen FIRST, so a goal that names its own child (e.g.
+            "Ava will count") could be mis-attributed to a different Child N
+            when two kids share a first name. Replace THIS student's own name
+            tokens with THIS student's label first, then run the global scrub
+            so any peer names mentioned are still anonymized (privacy).
+            """
+            result = text
+            local = {student.get('name', ''): label}
+            for tok in (student.get('name', '') or '').split():
+                core = tok[:-1] if tok.endswith('.') else tok
+                if len(core) >= 2 and _re.fullmatch(r"[A-Za-z]+([-\'][A-Za-z]+)*", core):
+                    local.setdefault(core, label)
+            for nm in sorted((k for k in local if k), key=len, reverse=True):
+                result = _re.sub(r"\b" + _re.escape(nm) + r"\b", local[nm],
+                                 result, flags=_re.IGNORECASE)
+            # global scrub catches any OTHER students' names in the text
+            return self.anonymizer.anonymize_text(result, all_students)
+
+        def _member_block(student):
+            sid = student.get('id')
+            label = anon_name_by_id.get(sid, '(unknown student - not in this plan)')
+            header = f"  - {label}"
+            # m1: surface an unscored/unassessed student rather than silently tiering them.
+            ability = student.get('ability_level') or {}
+            if not any(ability.get(k) for k in ('functional_level', 'communication_tier',
+                                                'independence_tier', 'academic_access')):
+                header += " (ability not yet assessed - confirm tier with teacher)"
+            lines = [header + ":"]
+            goals = normalize_goals(student.get('iep_goals'))
+            emitted = False
+            for goal in goals:
+                raw = goal.get('text', '')
+                if not raw:
+                    continue
+                text = _scrub_goal_text(student, label, raw)
+                lines.append(f"      \u2022 Goal: {text}")
+                emitted = True
+            if not emitted:
+                lines.append("      \u2022 (no IEP goals on file - target functional priorities)")
+            return "\n".join(lines)
+
+        fallback_whole_class = False
+        if not groups:
+            fallback_whole_class = True
+            groups = [{
+                'name': 'Whole Class',
+                'description': '',
+                'student_ids': [s.get('id') for s in all_students],
+            }]
+
+        section = "CENTER-ROTATION MATRIX (FULL CLASS):\n"
+        section += (
+            f"The class runs a 4-center rotation. ALL groups rotate through ALL "
+            f"four centers, spending {rotation_minutes} minutes at each center. "
+            "Every group visits every center; each group gets its OWN activity at "
+            "each center, tailored to that group's level (same center focus, "
+            "different access point).\n\n"
+        )
+        if fallback_whole_class:
+            section += (
+                "NOTE: No groups have been sized yet. Treat the WHOLE CLASS as ONE "
+                "group at each center for now, tiering each activity to the range of "
+                "learners listed below.\n\n"
+            )
+
+        section += "GROUPS (rotate through every center):\n"
+        _seen_member_ids = set()  # m2: a student appears in at most one rotation group
+        for group in groups:
+            name = self.anonymizer.anonymize_text(group.get('name', 'Group') or 'Group', all_students)
+            member_students = []
+            for sid in group.get('student_ids', []):
+                if sid in _seen_member_ids:
+                    continue  # already placed in an earlier group
+                _seen_member_ids.add(sid)
+                st = student_by_id.get(sid)
+                if st is None:
+                    member_students.append({'id': sid, 'name': '__missing__', 'iep_goals': []})
+                else:
+                    member_students.append(st)
+
+            section += f"\nGroup {name}"
+            if member_students:
+                n = len(member_students)
+                section += f" ({n} student{'s' if n != 1 else ''})"
+            section += ":\n"
+
+            if group.get('instruction_level'):
+                lvl = self.anonymizer.anonymize_text(str(group['instruction_level']), all_students)
+                section += f"  Level: {lvl}\n"
+            if group.get('avg_score') is not None and group.get('avg_score') != '':
+                # avg_score should be numeric; render defensively and scrub if somehow free-text.
+                avg_raw = group['avg_score']
+                if isinstance(avg_raw, (int, float)):
+                    section += f"  Avg ability score: {avg_raw}\n"
+                else:
+                    section += f"  Avg ability score: {self.anonymizer.anonymize_text(str(avg_raw), all_students)}\n"
+            desc = group.get('description')
+            if desc:
+                section += f"  Description: {self.anonymizer.anonymize_text(desc, all_students)}\n"
+            if group.get('goal_tags'):
+                tags = [self.anonymizer.anonymize_text(str(t), all_students) for t in group['goal_tags']]
+                section += f"  Shared goal focus: {', '.join(tags)}\n"
+
+            section += "  Members & IEP goals:\n"
+            for st in member_students:
+                if st.get('name') == '__missing__':
+                    section += "    - (unknown student - not in this plan)\n"
+                    continue
+                section += _member_block(st) + "\n"
+
+        CENTER_GUIDANCE = {
+            'reading': (
+                "Sight words (EXIT, STOP, name, schedule words), picture "
+                "comprehension, and phonological awareness AT THE GROUP'S LEVEL."
+            ),
+            'math': (
+                "1:1 correspondence, counting, more/less, money recognition, "
+                "and time concepts."
+            ),
+            'fine_motor': (
+                "Pincer grasp, tracing, cutting, adaptive utensils, and hand "
+                "strength. Provide BOTH ambulatory and adaptive access points."
+            ),
+            'sel_adaptive_life': (
+                "Self-regulation/coping strategies, turn-taking/waiting/greeting, "
+                "dressing/hygiene/eating routines, and functional communication."
+            ),
+        }
+
+        section += "\nTHE 4 FIXED CENTERS (each group gets a tailored activity at each):\n"
+        for center in (centers or []):
+            cname = center.get('name', center.get('id', 'Center'))
+            ctype = center.get('type', '')
+            guidance = CENTER_GUIDANCE.get(ctype, "Functional, life-skills-focused activity at the group's level.")
+            section += f"  - {cname} [{ctype}]: {guidance}\n"
+
+        section += (
+            "\nPRODUCE THE MATRIX: For EACH group \u00d7 EACH center, write ONE activity "
+            "(one activity per group per center). Keep the same center focus across "
+            "groups but tier each activity to that group's level with a different "
+            "access point, and target the specific IEP goals listed for that group's "
+            "members. Every activity must be PARA-READABLE (an aide can run it "
+            "without verbal instruction) and must embed BOTH the data-collection "
+            "method (tally, +/-, task-analysis checklist, anecdotal) AND the expected "
+            "prompting level (full physical, partial physical, model, gestural, "
+            "verbal, independent).\n"
+        )
+
+        return section
     def _build_groups_section(self, students):
         """Build the ability/goal group context for the prompt."""
         all_groups = get_all_groups()
@@ -433,7 +641,7 @@ child unable to participate. Use tiered task analysis — same activity, differe
         
         return section
     
-    def _build_request_section(self, plan_type, additional_notes=''):
+    def _build_request_section(self, plan_type, additional_notes='', num_groups=None):
         if plan_type == 'weekly':
             request_text = """PLEASE GENERATE:
 
@@ -533,6 +741,30 @@ Whole-class activities should be accessible to ALL students with tiered particip
 Individual plans target each student's specific IEP goals.
 
 FORMAT: Organize by time block — show who is where, doing what, with whom."""
+        
+        elif plan_type == 'center_rotation':
+            n = num_groups if isinstance(num_groups, int) and num_groups > 0 else None
+            if n:
+                for_phrase = f"for EACH of the {n} groups listed above"
+                count_phrase = f"{n} \u00d7 4 activities total"
+            else:
+                for_phrase = "for EACH group listed above"
+                count_phrase = "one activity per group per center (groups \u00d7 4 centers)"
+            request_text = (
+                "PLEASE GENERATE:\n\n"
+                "**FULL CENTER \u00d7 GROUP ROTATION MATRIX**\n\n"
+                f"Produce the full Center \u00d7 Group matrix: {for_phrase}, ONE tailored "
+                f"activity at EACH of the 4 centers = {count_phrase}. Do NOT write one "
+                "shared activity per center; every group needs its OWN tiered activity "
+                "at every center, targeting that group's members' IEP goals.\n\n"
+                "For EACH cell (group \u00d7 center) include:\n"
+                "- **Activity** (tiered to the group's level; same center focus, different access point)\n"
+                "- **IEP goal(s) targeted** for that group's members\n"
+                "- **Step-by-step procedure** (PARA-READABLE - an aide runs it without verbal instruction)\n"
+                "- **Prompting level** (full physical, partial physical, model, gestural, verbal, independent)\n"
+                "- **Data collection** (tally, +/-, task-analysis checklist, anecdotal)\n\n"
+                "FORMAT: Present as a matrix/grid organized by group, then by center."
+            )
         
         else:
             request_text = f"""PLEASE GENERATE a {plan_type} lesson plan following the classroom structure and IEP integration described above."""

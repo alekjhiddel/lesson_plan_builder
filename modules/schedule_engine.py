@@ -9,6 +9,7 @@ import json
 import os
 from datetime import datetime, timedelta
 from itertools import combinations
+from .center_manager import get_centers, get_rotation_minutes
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 SCHEDULE_CONFIG_FILE = os.path.join(DATA_DIR, 'schedule_config.json')
@@ -301,31 +302,36 @@ def _pick_escort_aide_ORIGINAL(staff, already_escorting, config):
 
 
 def _assign_centers(students_in, available_staff, config):
-    """Assign students to center groups with staff."""
-    num_groups = min(config.get('center_groups', 3), len(available_staff))
-    
+    """Assign students to center groups with staff.
+
+    Uses the four FIXED named centers from center_manager
+    (Reading / Math / Motor / SEL-Adaptive-Life). Concurrent center stations
+    are bounded by available staff (e.g. 3 staff -> 3 stations at once);
+    groups still rotate through all centers over the day. If more groups than
+    named centers, centers cycle (wrap-around); fewer groups use the first N.
+    """
     if not students_in or not available_staff:
         return []
-    
-    # Split students into groups
+    centers = get_centers()
+    num_centers = len(centers) or 1
+    num_groups = min(config.get('center_groups', 3), len(available_staff))
     groups = [[] for _ in range(num_groups)]
     for i, student in enumerate(students_in):
         groups[i % num_groups].append(student['name'] if isinstance(student, dict) else student)
-    
-    # Assign staff to groups
     assignments = []
     for i, group in enumerate(groups):
         staff_member = available_staff[i] if i < len(available_staff) else available_staff[-1]
+        center = centers[i % num_centers]
         assignments.append({
             'type': 'center',
             'group_number': i + 1,
             'staff': staff_member['name'],
             'students': group,
-            'center_name': f'Center {i + 1}'
+            'center_name': center['name'],
+            'center_id': center['id'],
+            'center_type': center['type'],
         })
-    
     return assignments
-
 
 def _assign_individual(students_in, available_staff):
     """Assign 1:1 aide time — pair each aide with students in rotation."""
@@ -376,7 +382,7 @@ def _build_aide_grid(daily_schedule, staff):
                 for a in block_schedule.get('assignments', []):
                     if isinstance(a.get('staff'), str) and a['staff'] == s['name']:
                         if a['type'] == 'center':
-                            assignment = f"Center {a.get('group_number', '?')}: {', '.join(a.get('students', [])[:3])}"
+                            assignment = f"{a.get('center_name') or ('Center ' + str(a.get('group_number', '?')))}: {', '.join(a.get('students', [])[:3])}"
                         elif a['type'] == 'individual':
                             assignment = f"1:1 with: {', '.join(a.get('students', [])[:2])}"
                         else:
@@ -411,7 +417,7 @@ def _build_student_grid(daily_schedule, students):
                     students_list = a.get('students', [])
                     if s['name'] in students_list:
                         if a['type'] == 'center':
-                            location = f"Center {a.get('group_number', '?')}"
+                            location = a.get('center_name') or f"Center {a.get('group_number', '?')}"
                         elif a['type'] == 'individual':
                             location = f"1:1 with {a.get('staff', 'aide')}"
                         break
@@ -557,7 +563,7 @@ def format_schedule_for_prompt(schedule, students):
         if block.get('assignments'):
             for a in block['assignments']:
                 if a['type'] == 'center':
-                    lines.append(f"  Center {a.get('group_number')}: {a.get('staff')} with {', '.join(a.get('students', []))}")
+                    lines.append(f"  {a.get('center_name') or ('Center ' + str(a.get('group_number')))}: {a.get('staff')} with {', '.join(a.get('students', []))}")
                 elif a['type'] == 'individual':
                     lines.append(f"  1:1: {a.get('staff')} → {', '.join(a.get('students', []))}")
         lines.append("")

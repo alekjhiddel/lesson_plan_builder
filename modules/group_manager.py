@@ -413,3 +413,120 @@ def get_group_summary():
         'students_grouped': len(total_students),
         'groups': groups
     }
+
+
+def size_groups_by_skill(students, num_groups=None, group_sizes=None,
+                         leftover_policy='attach_nearest'):
+    """
+    Split REMAINING students (those not already placed in a goal group) into
+    teacher-sized groups balanced by ability. Interactive Stage-2 sizing from
+    the Center-Rotation spec: caller supplies EITHER num_groups OR group_sizes.
+
+    Balancing: students are sorted by calculate_ability_score() and filled into
+    groups as CONTIGUOUS chunks by score (similar-ability kids together), not
+    round-robin, so each group is internally close in level.
+
+    num_groups (int): split as evenly as possible; extra students go to the
+        EARLIER (lowest-ability) groups (e.g. 7 into 3 -> 3,2,2).
+    group_sizes (list[int]): exact group sizes, honored verbatim in
+        ascending-ability order (e.g. [3,2,2]). sum < count -> the remainder
+        are leftovers handled by leftover_policy; sum > count -> ValueError.
+    leftover_policy: 'attach_nearest' (default) attaches each leftover to the
+        existing group whose average ability score is closest to that student's
+        score; 'own_group' collects leftovers into their own final group.
+
+    Provide EXACTLY one of num_groups / group_sizes. Both given -> group_sizes
+    wins. Both None -> ValueError. Empty students -> [] regardless of args.
+    Returns a list of group dicts in the SAME shape as auto_group_by_ability.
+    Does NOT save to disk.
+    """
+    # Empty class short-circuits regardless of sizing args (spec).
+    if not students:
+        return []
+    if num_groups is None and group_sizes is None:
+        raise ValueError("Provide exactly one of num_groups or group_sizes.")
+    # Validate leftover_policy up front (fail loudly even when no leftovers).
+    if leftover_policy not in ('attach_nearest', 'own_group'):
+        raise ValueError("leftover_policy must be 'attach_nearest' or 'own_group'.")
+
+    # Score and sort ascending (lowest score = highest support first). Guard an
+    # explicit ability_level of None (calculate_ability_score only guards a
+    # MISSING key, not None) so every student stays placeable.
+    scored = [(s, calculate_ability_score(s) if s.get('ability_level') else 0)
+              for s in students]
+    scored.sort(key=lambda x: x[1])
+    n = len(scored)
+
+    if group_sizes is not None:
+        if not isinstance(group_sizes, (list, tuple)) or len(group_sizes) == 0:
+            raise ValueError("group_sizes must be a non-empty list of positive ints.")
+        for sz in group_sizes:
+            if not isinstance(sz, int) or isinstance(sz, bool) or sz <= 0:
+                raise ValueError("group_sizes entries must be positive integers.")
+        total = sum(group_sizes)
+        if total > n:
+            raise ValueError("group_sizes sum (%d) exceeds number of students (%d)." % (total, n))
+        sizes = list(group_sizes)
+        leftover_count = n - total
+    else:
+        if not isinstance(num_groups, int) or isinstance(num_groups, bool):
+            raise ValueError("num_groups must be an integer.")
+        if num_groups <= 0:
+            raise ValueError("num_groups must be a positive integer.")
+        if num_groups > n:
+            raise ValueError("num_groups (%d) exceeds number of students (%d)." % (num_groups, n))
+        base_sz, extra = divmod(n, num_groups)
+        sizes = [base_sz + 1 if i < extra else base_sz for i in range(num_groups)]
+        leftover_count = 0
+
+    chunks = []
+    idx = 0
+    for sz in sizes:
+        chunks.append(scored[idx:idx + sz]); idx += sz
+    leftovers = scored[idx:idx + leftover_count] if leftover_count else []
+
+    if leftovers:
+        if leftover_policy == 'own_group':
+            chunks.append(list(leftovers))
+        else:  # 'attach_nearest' (already validated)
+            for s, score in leftovers:
+                best_i, best_diff = 0, None
+                for i, chunk in enumerate(chunks):
+                    avg = sum(c[1] for c in chunk) / len(chunk) if chunk else 0
+                    diff = abs(avg - score)
+                    if best_diff is None or diff < best_diff:
+                        best_diff, best_i = diff, i
+                chunks[best_i].append((s, score))
+
+    groups = []
+    gi = 0
+    for chunk in chunks:
+        if not chunk:
+            continue
+        name = DEFAULT_GROUP_NAMES[gi] if gi < len(DEFAULT_GROUP_NAMES) else 'Group %d' % (gi + 1)
+        color = DEFAULT_GROUP_COLORS[gi] if gi < len(DEFAULT_GROUP_COLORS) else '#9E9E9E'
+        gi += 1
+        student_ids = [s.get('id') for s, _ in chunk]
+        scores = [sc for _, sc in chunk]
+        avg_score = sum(scores) / len(scores) if scores else 0
+        func_levels = set(); comm_levels = set()
+        for s, _ in chunk:
+            ability = s.get('ability_level', {}) or {}
+            func_levels.add(ability.get('functional_level', 'unknown'))
+            comm_levels.add(ability.get('communication_tier', 'unknown'))
+        description = "%s functional level, %s communication" % (
+            ', '.join(sorted(func_levels)), ', '.join(sorted(comm_levels)))
+        groups.append({
+            'id': str(uuid.uuid4()),
+            'name': name,
+            'group_type': 'ability',
+            'color': color,
+            'student_ids': student_ids,
+            'description': description,
+            'goal_tags': [],
+            'auto_generated': True,
+            'instruction_level': get_instruction_level(avg_score),
+            'avg_score': round(avg_score, 1),
+            'last_updated': datetime.now().isoformat()
+        })
+    return groups
