@@ -27,6 +27,71 @@
 </div>
 
 
+{% if rotation_sizing_needed %}
+<form method="POST" class="generate-form">
+    <div class="form-section">
+        <h2>🔄 Size the Center-Rotation Groups</h2>
+        <p class="subtitle">{{ rotation_remaining_count }} student{{ '' if rotation_remaining_count == 1 else 's' }} aren't in an IEP-goal group. How should we group them for center rotations?</p>
+        <p class="help-text">{{ rotation_goal_group_count }} goal group{{ '' if rotation_goal_group_count == 1 else 's' }} already set — these remaining students just need sizing.</p>
+
+        {% if rotation_sizing_error %}
+        <div class="alert alert-error">{{ rotation_sizing_error }}</div>
+        {% endif %}
+
+        <div class="student-chips" style="margin: 0.75rem 0 1.25rem;">
+            {% for student in rotation_remaining %}
+                <span class="chip">{{ student.name }}</span>
+            {% endfor %}
+        </div>
+
+        {% if rotation_split_options %}
+        <div class="form-group">
+            <label>Suggested even splits</label>
+            {% for opt in rotation_split_options %}
+            <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px; font-weight:normal;">
+                <input type="radio" name="rotation_preset" value="{{ opt.num_groups }}" data-num="{{ opt.num_groups }}" style="width:auto; margin:0;">
+                <span>{{ opt.label }}</span>
+            </label>
+            {% endfor %}
+            <span class="help-text">Picking one just fills the box below — tweak it however you like.</span>
+        </div>
+        {% endif %}
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="rotation_num_groups">Or choose the number of groups</label>
+                <input type="number" id="rotation_num_groups" name="rotation_num_groups" min="1" max="{{ rotation_remaining_count }}" value="{{ rotation_split_options[0].num_groups if rotation_split_options else 1 }}">
+                <span class="help-text">Between 1 and {{ rotation_remaining_count }} groups.</span>
+            </div>
+            <div class="form-group">
+                <label for="rotation_group_sizes">Advanced: exact group sizes <span class="optional">(optional)</span></label>
+                <input type="text" id="rotation_group_sizes" name="rotation_group_sizes" placeholder="e.g. 3,2,2">
+                <span class="help-text">If filled, this takes priority over the group count above. Sizes must add up to {{ rotation_remaining_count }}.</span>
+            </div>
+        </div>
+
+        <input type="hidden" name="rotation_sizing" value="1">
+        <input type="hidden" name="plan_type" value="center_rotation">
+        <input type="hidden" name="month" value="{{ rotation_form.get('month', '') }}">
+        <input type="hidden" name="custom_theme" value="{{ rotation_form.get('custom_theme', '') }}">
+        <input type="hidden" name="no_theme" value="{{ rotation_form.get('no_theme', '') }}">
+        <input type="hidden" name="additional_notes" value="{{ rotation_form.get('additional_notes', '') }}">
+        <input type="hidden" name="para_notes_style" value="{{ rotation_form.get('para_notes_style', '') }}">
+        {% if rotation_form.get('by_goal') %}
+        <input type="hidden" name="by_goal" value="yes">
+        {% for sid, idxs in (rotation_goal_targets or {}).items() %}
+            {% for idx in idxs %}
+        <input type="hidden" name="goal_{{ sid }}_{{ idx }}" value="on">
+            {% endfor %}
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-large">Build Center Rotation Plan 🔄</button>
+    </div>
+</form>
+{% else %}
 <form method="POST" class="generate-form">
     <div class="form-section">
         <h2>What would you like to generate?</h2>
@@ -63,6 +128,21 @@
                     <p>Whole class + small group + individual 1:1 — the full package</p>
                 </div>
             </label>
+            <label class="plan-type-card">
+                <input type="radio" name="plan_type" value="center_rotation">
+                <div class="plan-type-content">
+                    <span class="plan-type-icon">🔄</span>
+                    <h3>Center Rotation Plan</h3>
+                    <p>Every group rotates through all 4 centers (Reading, Math, Motor, Social/Emotional/Adaptive/Life Skills) — each group gets its own activity per center, tailored to their level.</p>
+                </div>
+            </label>
+        </div>
+        <div class="current-theme" style="margin-top: 1rem; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <span>⏱️ <strong>Center rotation length</strong> (for Center Rotation Plans)</span>
+            <input type="number" id="rotation-minutes-input" min="5" max="30" step="1" value="10" style="width: 80px;">
+            <span class="help-text" style="margin:0;">minutes per center (5–30)</span>
+            <button type="button" id="rotation-minutes-save" class="btn btn-secondary">Save</button>
+            <span id="rotation-minutes-msg" class="help-text" style="margin:0;"></span>
         </div>
     </div>
     
@@ -172,6 +252,7 @@
         <button type="submit" class="btn btn-primary btn-large">Generate Prompt ✨</button>
     </div>
 </form>
+{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
@@ -207,6 +288,49 @@
     function sync() { panel.style.display = byGoal.checked ? 'block' : 'none'; }
     byGoal.addEventListener('change', sync);
     sync();
+})();
+</script>
+<script>
+// Center-rotation length: load current value, save via API.
+(function () {
+    const input = document.getElementById('rotation-minutes-input');
+    const saveBtn = document.getElementById('rotation-minutes-save');
+    const msg = document.getElementById('rotation-minutes-msg');
+    if (!input || !saveBtn) return;
+    fetch('/api/centers/rotation_minutes')
+        .then(r => r.json())
+        .then(d => { const v = (d && (d.rotation_minutes)); if (v !== undefined && v !== null) input.value = v; })
+        .catch(() => {});
+    saveBtn.addEventListener('click', function () {
+        if (msg) { msg.textContent = 'Saving…'; msg.style.color = '#555'; }
+        fetch('/api/centers/rotation_minutes', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rotation_minutes: parseInt(input.value, 10) })
+        })
+        .then(r => r.json().then(d => ({ status: r.status, body: d })))
+        .then(({ status, body }) => {
+            if (status === 200 && body && body.ok !== false) {
+                const v = (body.rotation_minutes !== undefined ? body.rotation_minutes : input.value);
+                input.value = v;
+                if (msg) { msg.textContent = '✓ Saved (' + v + ' min)'; msg.style.color = '#2e7d32'; }
+            } else {
+                const err = (body && body.error) ? body.error : 'Could not save.';
+                if (msg) { msg.textContent = '⚠ ' + err; msg.style.color = '#c62828'; }
+            }
+        })
+        .catch(() => { if (msg) { msg.textContent = '⚠ Network error.'; msg.style.color = '#c62828'; } });
+    });
+})();
+// Sizing presets fill the number box.
+(function () {
+    const presets = document.querySelectorAll('input[name="rotation_preset"]');
+    const numInput = document.getElementById('rotation_num_groups');
+    const sizes = document.getElementById('rotation_group_sizes');
+    if (!presets.length || !numInput) return;
+    presets.forEach(p => p.addEventListener('change', function () {
+        numInput.value = this.getAttribute('data-num');
+        if (sizes) sizes.value = '';
+    }));
 })();
 </script>
 {% endblock %}
